@@ -121,3 +121,30 @@ func TestArrayAll(t *testing.T) {
 		t.Error("Expected false but got true")
 	}
 }
+
+func TestArrayCollect(t *testing.T) {
+	a := Array{1, 2, 3, 4, 5}
+	inc := func(e interface{}) interface{} {
+		return e.(int) + 1
+	}
+
+	a = a.Collect(inc)
+	result := Array{2, 3, 4, 5, 6}
+	for i := range a {
+		if a[i] != result[i] {
+			t.Errorf("Expected %d but got %d", result[i], a[i])
+		}
+	}
+}
+
+func TestArrayCompact(t *testing.T) {
+	a := Array{1, nil, 3}
+	a = a.Compact()
+
+	result := Array{1, 3}
+	for i := range a {
+		if a[i] != result[i] {
+			t.Errorf("Expected %d but got %d", result[i], a[i])
+		}
+	}
+}

@@ -85,3 +85,25 @@ func (a Array) All(block func(interface{}) bool) bool {
 
 	return true
 }
+
+// Array Collect will pass every element in array to "block" returining a new Array with the return values
+func (a Array) Collect(block func(interface{}) interface{}) Array {
+	result := Array{}
+
+	for _, o := range a {
+		result = append(result, block(o))
+	}
+
+	return result
+}
+
+// Array Compact will return a new array with all non-nil elements
+func (a Array) Compact() Array {
+	result := Array{}
+	for _, o := range a {
+		if o != nil {
+			result = append(result, o)
+		}
+	}
+	return result
+}
