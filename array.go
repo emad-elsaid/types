@@ -9,31 +9,31 @@ type Array []interface{}
 // Array At returns element by index, a negative index counts from the end of
 // the Array
 // if index is out of range it returns nil
-func (this Array) At(index int64) interface{} {
-	len := int64(len(this))
+func (a Array) At(index int64) interface{} {
+	len := int64(len(a))
 
 	if index < 0 {
 		if -index <= len {
-			return this[len+index]
+			return a[len+index]
 		}
 		return nil
 	}
 
 	if index < len {
-		return this[index]
+		return a[index]
 	}
 
 	return nil
 }
 
 // Array Count returns total number of elements in Array
-func (this Array) Count() int64 {
-	return int64(len(this))
+func (a Array) Count() int64 {
+	return int64(len(a))
 }
 
 // Array CountElement returns number of elements equal to "element" in Array
-func (this Array) CountElement(element interface{}) (count int64) {
-	for _, o := range this {
+func (a Array) CountElement(element interface{}) (count int64) {
+	for _, o := range a {
 		if o == element {
 			count++
 		}
@@ -42,8 +42,8 @@ func (this Array) CountElement(element interface{}) (count int64) {
 }
 
 // Array CountBy returns number of elements which "block" returns true for
-func (this Array) CountBy(block func(interface{}) bool) (count int64) {
-	for _, o := range this {
+func (a Array) CountBy(block func(interface{}) bool) (count int64) {
+	for _, o := range a {
 		if block(o) {
 			count++
 		}
@@ -53,11 +53,35 @@ func (this Array) CountBy(block func(interface{}) bool) (count int64) {
 
 // Array Cycle will cycle through Array elements "count" times passing each
 // element to "block" function
-func (this Array) Cycle(count int64, block func(interface{})) {
+func (a Array) Cycle(count int64, block func(interface{})) {
 	var i int64
 	for i = 0; i < count; i++ {
-		for _, v := range this {
+		for _, v := range a {
 			block(v)
 		}
 	}
+}
+
+// Array Any returns true if "block" returned true for any of the Array elements
+// and false otherwise
+func (a Array) Any(block func(interface{}) bool) bool {
+	for _, o := range a {
+		if block(o) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Array All returns true if "block" returned true for all elements in Array and
+// false otherwise
+func (a Array) All(block func(interface{}) bool) bool {
+	for _, o := range a {
+		if !block(o) {
+			return false
+		}
+	}
+
+	return true
 }

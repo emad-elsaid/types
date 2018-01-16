@@ -1,8 +1,8 @@
 package types
 
-import . "testing"
+import "testing"
 
-func TestArrayAt(t *T) {
+func TestArrayAt(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6, 7}
 	tcs := map[int64]interface{}{
 		1:  2,
@@ -21,7 +21,7 @@ func TestArrayAt(t *T) {
 	}
 }
 
-func TestArrayCount(t *T) {
+func TestArrayCount(t *testing.T) {
 	a := Array{1, 2, 3, 4}
 	result := a.Count()
 	if result != 4 {
@@ -29,7 +29,7 @@ func TestArrayCount(t *T) {
 	}
 }
 
-func TestArrayCountElement(t *T) {
+func TestArrayCountElement(t *testing.T) {
 	a := Array{1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3}
 	tcs := map[int]int64{
 		1: 3,
@@ -46,7 +46,7 @@ func TestArrayCountElement(t *T) {
 	}
 }
 
-func TestArrayCountBy(t *T) {
+func TestArrayCountBy(t *testing.T) {
 	a := Array{1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3}
 	tcs := []struct {
 		name   string
@@ -78,7 +78,7 @@ func TestArrayCountBy(t *T) {
 	}
 }
 
-func TestArrayCycle(t *T) {
+func TestArrayCycle(t *testing.T) {
 	a := Array{1, 2}
 
 	elements := []int{1, 2, 1, 2, 1, 2}
@@ -90,4 +90,34 @@ func TestArrayCycle(t *T) {
 
 		elements = elements[1:]
 	})
+}
+
+func TestArrayAny(t *testing.T) {
+	a := Array{false, false, false}
+	identity := func(e interface{}) bool {
+		return e.(bool)
+	}
+	if a.Any(identity) {
+		t.Error("Expected false but got true")
+	}
+
+	a = Array{false, true, false}
+	if !a.Any(identity) {
+		t.Error("Expected true but got false")
+	}
+}
+
+func TestArrayAll(t *testing.T) {
+	a := Array{true, true, true}
+	identity := func(e interface{}) bool {
+		return e.(bool)
+	}
+	if !a.All(identity) {
+		t.Error("Expected true but got false")
+	}
+
+	a = Array{false, true, false}
+	if a.All(identity) {
+		t.Error("Expected false but got true")
+	}
 }
