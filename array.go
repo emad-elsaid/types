@@ -123,3 +123,14 @@ func (a Array) Delete(element interface{}) Array {
 func (a Array) DeleteAt(index int64) Array {
 	return append(a[:index], a[index+1:]...)
 }
+
+// Array DeleteIf will delete all elements which "block" returns true for
+func (a Array) DeleteIf(block func(interface{}) bool) Array {
+	result := Array{}
+	for _, o := range a {
+		if !block(o) {
+			result = append(result, o)
+		}
+	}
+	return result
+}

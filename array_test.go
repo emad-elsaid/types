@@ -165,3 +165,12 @@ func TestDeleteAt(t *testing.T) {
 	result := Array{1, 3, 4}
 	AssertArraysEquals(t, result, a)
 }
+
+func TestDeleteIf(t *testing.T) {
+	a := Array{1, 2, 3, 4, 5, 6}
+	a = a.DeleteIf(func(e interface{}) bool {
+		return e.(int) > 1
+	})
+	result := Array{1}
+	AssertArraysEquals(t, result, a)
+}
