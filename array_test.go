@@ -2,6 +2,18 @@ package types
 
 import "testing"
 
+func AssertArraysEquals(t *testing.T, a1 Array, a2 Array) {
+	if len(a1) != len(a2) {
+		t.Errorf("Arrays doesn't have the same length %d, %d", len(a1), len(a2))
+	}
+
+	for i := range a1 {
+		if a1[i] != a2[i] {
+			t.Errorf("Expected (%d) = %d but got %d", i, a1[i], a2[i])
+		}
+	}
+}
+
 func TestArrayAt(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6, 7}
 	tcs := map[int64]interface{}{
@@ -129,12 +141,7 @@ func TestArrayCollect(t *testing.T) {
 	}
 
 	a = a.Collect(inc)
-	result := Array{2, 3, 4, 5, 6}
-	for i := range a {
-		if a[i] != result[i] {
-			t.Errorf("Expected %d but got %d", result[i], a[i])
-		}
-	}
+	AssertArraysEquals(t, Array{2, 3, 4, 5, 6}, a)
 }
 
 func TestArrayCompact(t *testing.T) {
@@ -142,9 +149,19 @@ func TestArrayCompact(t *testing.T) {
 	a = a.Compact()
 
 	result := Array{1, 3}
-	for i := range a {
-		if a[i] != result[i] {
-			t.Errorf("Expected %d but got %d", result[i], a[i])
-		}
-	}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestDelete(t *testing.T) {
+	a := Array{1, 2, 3, 4, 1, 2, 3, 4}
+	a = a.Delete(1)
+	result := Array{2, 3, 4, 2, 3, 4}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestDeleteAt(t *testing.T) {
+	a := Array{1, 2, 3, 4}
+	a = a.DeleteAt(1)
+	result := Array{1, 3, 4}
+	AssertArraysEquals(t, result, a)
 }

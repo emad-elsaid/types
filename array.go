@@ -107,3 +107,19 @@ func (a Array) Compact() Array {
 	}
 	return result
 }
+
+// Array Delete will remove all elements that are equal to the passed element
+func (a Array) Delete(element interface{}) Array {
+	result := Array{}
+	for _, o := range a {
+		if o != element {
+			result = append(result, o)
+		}
+	}
+	return result
+}
+
+// Array DeleteAt will delete an element by index
+func (a Array) DeleteAt(index int64) Array {
+	return append(a[:index], a[index+1:]...)
+}
