@@ -7,20 +7,38 @@ Go implementation for generic types, imitating Ruby types
 ## Array
 
 ```
-func (a Array) All(block func(interface{}) bool) bool
-func (a Array) Any(block func(interface{}) bool) bool
-func (a Array) At(index int64) interface{}
-func (a Array) Collect(block func(interface{}) interface{}) Array
-func (a Array) Compact() Array
-func (a Array) Count() int64
-func (a Array) CountBy(block func(interface{}) bool) (count int64)
-func (a Array) CountElement(element interface{}) (count int64)
-func (a Array) Cycle(count int64, block func(interface{}))
-func (a Array) Delete(element interface{}) Array
-func (a Array) DeleteAt(index int64) Array
-func (a Array) DeleteIf(block func(interface{}) bool) Array
-func (a Array) Drop(count int64) Array
-func (a Array) Each(block func(interface{}))
-func (a Array) EachIndex(block func(int64))
-func (a Array) IsEmpty() bool
+All(block func(interface{}) bool) bool
+Any(block func(interface{}) bool) bool
+At(index int) interface{}
+Collect(block func(interface{}) interface{}) Array
+Compact() Array
+Count() int
+CountBy(block func(interface{}) bool) (count int)
+CountElement(element interface{}) (count int)
+Cycle(count int, block func(interface{}))
+Delete(element interface{}) Array
+DeleteAt(index int) Array
+DeleteIf(block func(interface{}) bool) Array
+Drop(count int) Array
+Each(block func(interface{}))
+EachIndex(block func(int))
+Fetch(index int, defaultValue interface{}) interface{}
+Fill(element interface{}, start int, length int) Array
+FillWith(start int, length int, block func(int) interface{}) Array
+First() interface{}
+Firsts(count int) Array
+Flatten() Array
+Include(element interface{}) bool
+Index(element interface{}) int
+IndexBy(block func(interface{}) bool) int
+Insert(index int, elements ...interface{}) Array
+IsEmpty() bool
+IsEq(other Array) bool
+KeepIf(block func(interface{}) bool) Array
+Last() interface{}
+Lasts(count int) Array
+Len() int
+Map(block func(interface{}) interface{}) Array
+Max(block func(interface{}) int) interface{}
+Min(block func(interface{}) int) interface{}
 ```
