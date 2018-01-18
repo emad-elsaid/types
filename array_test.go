@@ -174,3 +174,44 @@ func TestDeleteIf(t *testing.T) {
 	result := Array{1}
 	AssertArraysEquals(t, result, a)
 }
+
+func TestArrayDrop(t *testing.T) {
+	a := Array{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	a = a.Drop(5)
+	result := Array{6, 7, 8, 9}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayEach(t *testing.T) {
+	a := Array{1, 2, 3}
+	sum := 0
+	summer := func(e interface{}) { sum += e.(int) }
+	a.Each(summer)
+
+	if sum != 6 {
+		t.Errorf("Expected sum to be 6 but found %d", sum)
+	}
+}
+
+func TestArrayEachIndex(t *testing.T) {
+	a := Array{1, 2, 3}
+	var sum int64 = 0
+	summer := func(i int64) { sum += i }
+	a.EachIndex(summer)
+
+	if sum != 3 {
+		t.Errorf("Expected sum to be 3 but found %d", sum)
+	}
+}
+
+func TestArrayIsEmpty(t *testing.T) {
+	a := Array{}
+	if !a.IsEmpty() {
+		t.Error("Expected to be empty but found not empty")
+	}
+
+	a = Array{1, 2, 3}
+	if a.IsEmpty() {
+		t.Error("Expected to be not empty but found empty")
+	}
+}

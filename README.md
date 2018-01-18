@@ -18,4 +18,9 @@ func (a Array) CountElement(element interface{}) (count int64)
 func (a Array) Cycle(count int64, block func(interface{}))
 func (a Array) Delete(element interface{}) Array
 func (a Array) DeleteAt(index int64) Array
+func (a Array) DeleteIf(block func(interface{}) bool) Array
+func (a Array) Drop(count int64) Array
+func (a Array) Each(block func(interface{}))
+func (a Array) EachIndex(block func(int64))
+func (a Array) IsEmpty() bool
 ```

@@ -134,3 +134,27 @@ func (a Array) DeleteIf(block func(interface{}) bool) Array {
 	}
 	return result
 }
+
+// Array Drop will return an array without the first "count" elements from the beginning
+func (a Array) Drop(count int64) Array {
+	return a[count:]
+}
+
+// Array Each will execute "block" for each element in array
+func (a Array) Each(block func(interface{})) {
+	for _, o := range a {
+		block(o)
+	}
+}
+
+// Array EachIndex will execute "block" for each element index in array
+func (a Array) EachIndex(block func(int64)) {
+	for i, _ := range a {
+		block(int64(i))
+	}
+}
+
+// Array IsEmpty will return true of array empty, false otherwise
+func (a Array) IsEmpty() bool {
+	return len(a) == 0
+}
