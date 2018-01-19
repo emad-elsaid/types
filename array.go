@@ -288,6 +288,16 @@ func (a Array) KeepIf(block func(Element) bool) Array {
 	return result
 }
 
+// Select is an alias for KeepIf
+func (a Array) Select(block func(Element) bool) Array {
+	return a.KeepIf(block)
+}
+
+// Reduce is an alias for KeepIf
+func (a Array) Reduce(block func(Element) bool) Array {
+	return a.KeepIf(block)
+}
+
 // Map will return a new array replacing every element from current array
 // with the return value of the block
 func (a Array) Map(block func(Element) Element) Array {

@@ -73,4 +73,6 @@ func (a Array) Reverse() Array
 func (a Array) Shift() (Element, Array)
 func (a Array) Shuffle() Array
 func (a Array) Unshift(element Element) Array
+func (a Array) Reduce(block func(Element) bool) Array
+func (a Array) Select(block func(Element) bool) Array
 ```

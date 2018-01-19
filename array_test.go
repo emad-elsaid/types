@@ -361,6 +361,24 @@ func TestArrayKeepIf(t *testing.T) {
 	AssertArraysEquals(t, result, a)
 }
 
+func TestArraySelect(t *testing.T) {
+	a := Array{1, 2, 3, 4, 5, 6}
+	a = a.Select(func(e Element) bool {
+		return e.(int) > 3
+	})
+	result := Array{4, 5, 6}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayReduce(t *testing.T) {
+	a := Array{1, 2, 3, 4, 5, 6}
+	a = a.Reduce(func(e Element) bool {
+		return e.(int) > 3
+	})
+	result := Array{4, 5, 6}
+	AssertArraysEquals(t, result, a)
+}
+
 func TestArrayMap(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5}
 	inc := func(e Element) Element {
