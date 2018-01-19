@@ -38,9 +38,7 @@ fmt.Print(a)
 All(block func(Element) bool) bool
 Any(block func(Element) bool) bool
 At(index int) Element
-Collect(block func(Element) Element) Array
 Compact() Array
-Count() int
 CountBy(block func(Element) bool) (count int)
 CountElement(element Element) (count int)
 Cycle(count int, block func(Element))
