@@ -155,7 +155,7 @@ func (a Array) Each(block func(Element)) {
 
 // EachIndex will execute "block" for each element index in array
 func (a Array) EachIndex(block func(int)) {
-	for i, _ := range a {
+	for i := range a {
 		block(i)
 	}
 }
