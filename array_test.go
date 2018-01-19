@@ -204,7 +204,7 @@ func TestArrayEach(t *testing.T) {
 
 func TestArrayEachIndex(t *testing.T) {
 	a := Array{1, 2, 3}
-	var sum int = 0
+	var sum int
 	summer := func(i int) { sum += i }
 	a.EachIndex(summer)
 
