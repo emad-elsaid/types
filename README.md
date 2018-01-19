@@ -1,5 +1,9 @@
 # Types
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/emad-elsaid/types)](https://goreportcard.com/report/github.com/emad-elsaid/types)
+[![GoDoc](https://godoc.org/github.com/emad-elsaid/types?status.svg)](https://godoc.org/github.com/emad-elsaid/types)
+[![CircleCI](https://circleci.com/gh/emad-elsaid/types.svg?style=shield)](https://circleci.com/gh/emad-elsaid/types)
+
 Go implementation for generic types, imitating Ruby types
 
 # Data structures and methods
