@@ -32,11 +32,6 @@ func (a Array) At(index int) Element {
 	return nil
 }
 
-// Count returns total number of elements in Array
-func (a Array) Count() int {
-	return len(a)
-}
-
 // CountElement returns number of elements equal to "element" in Array
 func (a Array) CountElement(element Element) (count int) {
 	for _, o := range a {
@@ -89,17 +84,6 @@ func (a Array) All(block func(Element) bool) bool {
 	}
 
 	return true
-}
-
-// Collect will pass every element in array to "block" returining a new Array with the return values
-func (a Array) Collect(block func(Element) Element) Array {
-	result := Array{}
-
-	for _, o := range a {
-		result = append(result, block(o))
-	}
-
-	return result
 }
 
 // Compact will return a new array with all non-nil elements

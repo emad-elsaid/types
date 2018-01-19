@@ -34,14 +34,6 @@ func TestArrayAt(t *testing.T) {
 	}
 }
 
-func TestArrayCount(t *testing.T) {
-	a := Array{1, 2, 3, 4}
-	result := a.Count()
-	if result != 4 {
-		t.Errorf("Expected %d but found %d", 4, result)
-	}
-}
-
 func TestArrayLen(t *testing.T) {
 	a := Array{1, 2, 3, 4}
 	result := a.Len()
@@ -141,16 +133,6 @@ func TestArrayAll(t *testing.T) {
 	if a.All(identity) {
 		t.Error("Expected false but got true")
 	}
-}
-
-func TestArrayCollect(t *testing.T) {
-	a := Array{1, 2, 3, 4, 5}
-	inc := func(e Element) Element {
-		return e.(int) + 1
-	}
-
-	a = a.Collect(inc)
-	AssertArraysEquals(t, Array{2, 3, 4, 5, 6}, a)
 }
 
 func TestArrayCompact(t *testing.T) {
