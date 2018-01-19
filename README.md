@@ -7,38 +7,44 @@ Go implementation for generic types, imitating Ruby types
 ## Array
 
 ```
-All(block func(interface{}) bool) bool
-Any(block func(interface{}) bool) bool
-At(index int) interface{}
-Collect(block func(interface{}) interface{}) Array
+All(block func(Element) bool) bool
+Any(block func(Element) bool) bool
+At(index int) Element
+Collect(block func(Element) Element) Array
 Compact() Array
 Count() int
-CountBy(block func(interface{}) bool) (count int)
-CountElement(element interface{}) (count int)
-Cycle(count int, block func(interface{}))
-Delete(element interface{}) Array
+CountBy(block func(Element) bool) (count int)
+CountElement(element Element) (count int)
+Cycle(count int, block func(Element))
+Delete(element Element) Array
 DeleteAt(index int) Array
-DeleteIf(block func(interface{}) bool) Array
+DeleteIf(block func(Element) bool) Array
 Drop(count int) Array
-Each(block func(interface{}))
+Each(block func(Element))
 EachIndex(block func(int))
-Fetch(index int, defaultValue interface{}) interface{}
-Fill(element interface{}, start int, length int) Array
-FillWith(start int, length int, block func(int) interface{}) Array
-First() interface{}
+Fetch(index int, defaultValue Element) Element
+Fill(element Element, start int, length int) Array
+FillWith(start int, length int, block func(int) Element) Array
+First() Element
 Firsts(count int) Array
 Flatten() Array
-Include(element interface{}) bool
-Index(element interface{}) int
-IndexBy(block func(interface{}) bool) int
-Insert(index int, elements ...interface{}) Array
+Include(element Element) bool
+Index(element Element) int
+IndexBy(block func(Element) bool) int
+Insert(index int, elements ...Element) Array
 IsEmpty() bool
 IsEq(other Array) bool
-KeepIf(block func(interface{}) bool) Array
-Last() interface{}
+KeepIf(block func(Element) bool) Array
+Last() Element
 Lasts(count int) Array
 Len() int
-Map(block func(interface{}) interface{}) Array
-Max(block func(interface{}) int) interface{}
-Min(block func(interface{}) int) interface{}
+Map(block func(Element) Element) Array
+Max(block func(Element) int) Element
+Min(block func(Element) int) Element
+Pop() (Array, Element)
+Push(element Element) Array
+Reverse() Array
+Shift() (Element, Array)
+Shuffle() Array
+Unshift(element Element) Array
 ```

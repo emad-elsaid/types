@@ -17,7 +17,7 @@ func AssertArraysEquals(t *testing.T, a1 Array, a2 Array) {
 
 func TestArrayAt(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6, 7}
-	tcs := map[int]interface{}{
+	tcs := map[int]Element{
 		1:  2,
 		6:  7,
 		-1: 7,
@@ -71,22 +71,22 @@ func TestArrayCountBy(t *testing.T) {
 	a := Array{1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3}
 	tcs := []struct {
 		name   string
-		f      func(e interface{}) bool
+		f      func(e Element) bool
 		result int
 	}{
 		{
 			name:   "e == 1",
-			f:      func(e interface{}) bool { return e == 1 },
+			f:      func(e Element) bool { return e == 1 },
 			result: 3,
 		},
 		{
 			name:   "e < 1",
-			f:      func(e interface{}) bool { return e.(int) < 1 },
+			f:      func(e Element) bool { return e.(int) < 1 },
 			result: 0,
 		},
 		{
 			name:   "e > 1",
-			f:      func(e interface{}) bool { return e.(int) > 1 },
+			f:      func(e Element) bool { return e.(int) > 1 },
 			result: 9,
 		},
 	}
@@ -103,7 +103,7 @@ func TestArrayCycle(t *testing.T) {
 	a := Array{1, 2}
 
 	elements := []int{1, 2, 1, 2, 1, 2}
-	a.Cycle(3, func(e interface{}) {
+	a.Cycle(3, func(e Element) {
 		result := e.(int)
 		if result != elements[0] {
 			t.Errorf("Expected %d but found %d", elements[0], result)
@@ -115,7 +115,7 @@ func TestArrayCycle(t *testing.T) {
 
 func TestArrayAny(t *testing.T) {
 	a := Array{false, false, false}
-	identity := func(e interface{}) bool {
+	identity := func(e Element) bool {
 		return e.(bool)
 	}
 	if a.Any(identity) {
@@ -130,7 +130,7 @@ func TestArrayAny(t *testing.T) {
 
 func TestArrayAll(t *testing.T) {
 	a := Array{true, true, true}
-	identity := func(e interface{}) bool {
+	identity := func(e Element) bool {
 		return e.(bool)
 	}
 	if !a.All(identity) {
@@ -145,7 +145,7 @@ func TestArrayAll(t *testing.T) {
 
 func TestArrayCollect(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5}
-	inc := func(e interface{}) interface{} {
+	inc := func(e Element) Element {
 		return e.(int) + 1
 	}
 
@@ -177,7 +177,7 @@ func TestArrayDeleteAt(t *testing.T) {
 
 func TestArrayDeleteIf(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6}
-	a = a.DeleteIf(func(e interface{}) bool {
+	a = a.DeleteIf(func(e Element) bool {
 		return e.(int) > 1
 	})
 	result := Array{1}
@@ -194,7 +194,7 @@ func TestArrayDrop(t *testing.T) {
 func TestArrayEach(t *testing.T) {
 	a := Array{1, 2, 3}
 	sum := 0
-	summer := func(e interface{}) { sum += e.(int) }
+	summer := func(e Element) { sum += e.(int) }
 	a.Each(summer)
 
 	if sum != 6 {
@@ -268,7 +268,7 @@ func TestArrayFill(t *testing.T) {
 func TestArrayFillWith(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6}
 	result := Array{1, 2, 200, 300, 400, 6}
-	a.FillWith(2, 3, func(i int) interface{} {
+	a.FillWith(2, 3, func(i int) Element {
 		return i * 100
 	})
 	AssertArraysEquals(t, result, a)
@@ -287,7 +287,7 @@ func TestArrayIndex(t *testing.T) {
 
 func TestArrayIndexBy(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6}
-	index := a.IndexBy(func(element interface{}) bool {
+	index := a.IndexBy(func(element Element) bool {
 		return element.(int) > 2
 	})
 	if index != 2 {
@@ -365,7 +365,7 @@ func TestArrayInsert(t *testing.T) {
 
 func TestArrayKeepIf(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5, 6}
-	a = a.KeepIf(func(e interface{}) bool {
+	a = a.KeepIf(func(e Element) bool {
 		return e.(int) > 3
 	})
 	result := Array{4, 5, 6}
@@ -374,7 +374,7 @@ func TestArrayKeepIf(t *testing.T) {
 
 func TestArrayMap(t *testing.T) {
 	a := Array{1, 2, 3, 4, 5}
-	inc := func(e interface{}) interface{} {
+	inc := func(e Element) Element {
 		return e.(int) + 100
 	}
 	result := Array{101, 102, 103, 104, 105}
@@ -383,7 +383,7 @@ func TestArrayMap(t *testing.T) {
 
 func TestArrayMax(t *testing.T) {
 	a := Array{1, 2, 3, 4}
-	identity := func(e interface{}) int {
+	identity := func(e Element) int {
 		return e.(int)
 	}
 
@@ -395,12 +395,62 @@ func TestArrayMax(t *testing.T) {
 
 func TestArrayMin(t *testing.T) {
 	a := Array{1, 2, 3, 4}
-	identity := func(e interface{}) int {
+	identity := func(e Element) int {
 		return e.(int)
 	}
 
 	result := a.Min(identity)
 	if result != 1 {
 		t.Errorf("Expected min to be 4 found %d", result)
+	}
+}
+
+func TestArrayPush(t *testing.T) {
+	a := Array{1, 2}
+	a = a.Push(3)
+	result := Array{1, 2, 3}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayPop(t *testing.T) {
+	a := Array{1, 2, 3}
+	a, e := a.Pop()
+	result := Array{1, 2}
+	if e != 3 {
+		t.Errorf("Expected element to be 3 got %d", e)
+	}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayUnshift(t *testing.T) {
+	a := Array{1, 2, 3}
+	a = a.Unshift(4)
+	result := Array{4, 1, 2, 3}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayShift(t *testing.T) {
+	a := Array{1, 2, 3}
+	e, a := a.Shift()
+	result := Array{2, 3}
+	AssertArraysEquals(t, result, a)
+	if e != 1 {
+		t.Errorf("Expected element to be 1 got %d", e)
+	}
+}
+
+func TestArrayReverse(t *testing.T) {
+	a := Array{1, 2, 3}
+	a = a.Reverse()
+	result := Array{3, 2, 1}
+	AssertArraysEquals(t, result, a)
+}
+
+func TestArrayShuffle(t *testing.T) {
+	a := Array{1, 2, 3, 4}
+	a = a.Shuffle()
+	notResult := Array{1, 2, 3, 4}
+	if a.IsEq(notResult) {
+		t.Error("Expected arrays not to equal after shuffle but it was the same")
 	}
 }
