@@ -34,43 +34,43 @@ fmt.Print(a)
 
 ### Array Methods available:
 
-```
-All(block func(Element) bool) bool
-Any(block func(Element) bool) bool
-At(index int) Element
-Compact() Array
-CountBy(block func(Element) bool) (count int)
-CountElement(element Element) (count int)
-Cycle(count int, block func(Element))
-Delete(element Element) Array
-DeleteAt(index int) Array
-DeleteIf(block func(Element) bool) Array
-Drop(count int) Array
-Each(block func(Element))
-EachIndex(block func(int))
-Fetch(index int, defaultValue Element) Element
-Fill(element Element, start int, length int) Array
-FillWith(start int, length int, block func(int) Element) Array
-First() Element
-Firsts(count int) Array
-Flatten() Array
-Include(element Element) bool
-Index(element Element) int
-IndexBy(block func(Element) bool) int
-Insert(index int, elements ...Element) Array
-IsEmpty() bool
-IsEq(other Array) bool
-KeepIf(block func(Element) bool) Array
-Last() Element
-Lasts(count int) Array
-Len() int
-Map(block func(Element) Element) Array
-Max(block func(Element) int) Element
-Min(block func(Element) int) Element
-Pop() (Array, Element)
-Push(element Element) Array
-Reverse() Array
-Shift() (Element, Array)
-Shuffle() Array
-Unshift(element Element) Array
+```go
+func (a Array) All(block func(Element) bool) bool
+func (a Array) Any(block func(Element) bool) bool
+func (a Array) At(index int) Element
+func (a Array) Compact() Array
+func (a Array) CountBy(block func(Element) bool) (count int)
+func (a Array) CountElement(element Element) (count int)
+func (a Array) Cycle(count int, block func(Element))
+func (a Array) Delete(element Element) Array
+func (a Array) DeleteAt(index int) Array
+func (a Array) DeleteIf(block func(Element) bool) Array
+func (a Array) Drop(count int) Array
+func (a Array) Each(block func(Element))
+func (a Array) EachIndex(block func(int))
+func (a Array) Fetch(index int, defaultValue Element) Element
+func (a Array) Fill(element Element, start int, length int) Array
+func (a Array) FillWith(start int, length int, block func(int) Element) Array
+func (a Array) First() Element
+func (a Array) Firsts(count int) Array
+func (a Array) Flatten() Array
+func (a Array) Include(element Element) bool
+func (a Array) Index(element Element) int
+func (a Array) IndexBy(block func(Element) bool) int
+func (a Array) Insert(index int, elements ...Element) Array
+func (a Array) IsEmpty() bool
+func (a Array) IsEq(other Array) bool
+func (a Array) KeepIf(block func(Element) bool) Array
+func (a Array) Last() Element
+func (a Array) Lasts(count int) Array
+func (a Array) Len() int
+func (a Array) Map(block func(Element) Element) Array
+func (a Array) Max(block func(Element) int) Element
+func (a Array) Min(block func(Element) int) Element
+func (a Array) Pop() (Array, Element)
+func (a Array) Push(element Element) Array
+func (a Array) Reverse() Array
+func (a Array) Shift() (Element, Array)
+func (a Array) Shuffle() Array
+func (a Array) Unshift(element Element) Array
 ```
