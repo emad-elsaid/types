@@ -3,7 +3,7 @@ package types
 
 import "math/rand"
 
-// An Array element, an empty interface that allow to be used in any generic
+// Element is an empty interface that allow it to be used in any generic
 // structure
 type Element interface{}
 
@@ -12,7 +12,7 @@ type Element interface{}
 // in the same Array
 type Array []Element
 
-// Array At returns element by index, a negative index counts from the end of
+// At returns element by index, a negative index counts from the end of
 // the Array
 // if index is out of range it returns nil
 func (a Array) At(index int) Element {
@@ -32,12 +32,12 @@ func (a Array) At(index int) Element {
 	return nil
 }
 
-// Array Count returns total number of elements in Array
+// Count returns total number of elements in Array
 func (a Array) Count() int {
 	return len(a)
 }
 
-// Array CountElement returns number of elements equal to "element" in Array
+// CountElement returns number of elements equal to "element" in Array
 func (a Array) CountElement(element Element) (count int) {
 	for _, o := range a {
 		if o == element {
@@ -47,7 +47,7 @@ func (a Array) CountElement(element Element) (count int) {
 	return count
 }
 
-// Array CountBy returns number of elements which "block" returns true for
+// CountBy returns number of elements which "block" returns true for
 func (a Array) CountBy(block func(Element) bool) (count int) {
 	for _, o := range a {
 		if block(o) {
@@ -57,7 +57,7 @@ func (a Array) CountBy(block func(Element) bool) (count int) {
 	return count
 }
 
-// Array Cycle will cycle through Array elements "count" times passing each
+// Cycle will cycle through Array elements "count" times passing each
 // element to "block" function
 func (a Array) Cycle(count int, block func(Element)) {
 	for i := 0; i < count; i++ {
@@ -67,7 +67,7 @@ func (a Array) Cycle(count int, block func(Element)) {
 	}
 }
 
-// Array Any returns true if "block" returned true for any of the Array elements
+// Any returns true if "block" returned true for any of the Array elements
 // and false otherwise
 func (a Array) Any(block func(Element) bool) bool {
 	for _, o := range a {
@@ -79,7 +79,7 @@ func (a Array) Any(block func(Element) bool) bool {
 	return false
 }
 
-// Array All returns true if "block" returned true for all elements in Array and
+// All returns true if "block" returned true for all elements in Array and
 // false otherwise
 func (a Array) All(block func(Element) bool) bool {
 	for _, o := range a {
@@ -91,7 +91,7 @@ func (a Array) All(block func(Element) bool) bool {
 	return true
 }
 
-// Array Collect will pass every element in array to "block" returining a new Array with the return values
+// Collect will pass every element in array to "block" returining a new Array with the return values
 func (a Array) Collect(block func(Element) Element) Array {
 	result := Array{}
 
@@ -102,7 +102,7 @@ func (a Array) Collect(block func(Element) Element) Array {
 	return result
 }
 
-// Array Compact will return a new array with all non-nil elements
+// Compact will return a new array with all non-nil elements
 func (a Array) Compact() Array {
 	result := Array{}
 	for _, o := range a {
@@ -113,7 +113,7 @@ func (a Array) Compact() Array {
 	return result
 }
 
-// Array Delete will remove all elements that are equal to the passed element
+// Delete will remove all elements that are equal to the passed element
 func (a Array) Delete(element Element) Array {
 	result := Array{}
 	for _, o := range a {
@@ -124,12 +124,12 @@ func (a Array) Delete(element Element) Array {
 	return result
 }
 
-// Array DeleteAt will delete an element by index
+// DeleteAt will delete an element by index
 func (a Array) DeleteAt(index int) Array {
 	return append(a[:index], a[index+1:]...)
 }
 
-// Array DeleteIf will delete all elements which "block" returns true for
+// DeleteIf will delete all elements which "block" returns true for
 func (a Array) DeleteIf(block func(Element) bool) Array {
 	result := Array{}
 	for _, o := range a {
@@ -140,32 +140,32 @@ func (a Array) DeleteIf(block func(Element) bool) Array {
 	return result
 }
 
-// Array Drop will return an array without the first "count" elements from the
+// Drop will return an array without the first "count" elements from the
 // beginning
 func (a Array) Drop(count int) Array {
 	return a[count:]
 }
 
-// Array Each will execute "block" for each element in array
+// Each will execute "block" for each element in array
 func (a Array) Each(block func(Element)) {
 	for _, o := range a {
 		block(o)
 	}
 }
 
-// Array EachIndex will execute "block" for each element index in array
+// EachIndex will execute "block" for each element index in array
 func (a Array) EachIndex(block func(int)) {
 	for i, _ := range a {
 		block(i)
 	}
 }
 
-// Array IsEmpty will return true of array empty, false otherwise
+// IsEmpty will return true of array empty, false otherwise
 func (a Array) IsEmpty() bool {
 	return len(a) == 0
 }
 
-// Array IsEq returns true if array the "other" array
+// IsEq returns true if array the "other" array
 func (a Array) IsEq(other Array) bool {
 	// check length
 	if len(a) != len(other) {
@@ -182,12 +182,12 @@ func (a Array) IsEq(other Array) bool {
 	return true
 }
 
-// Array Len returns number of elements in array
+// Len returns number of elements in array
 func (a Array) Len() int {
 	return len(a)
 }
 
-// Array Fetch will return the element in "index", if it doesn't exist it
+// Fetch will return the element in "index", if it doesn't exist it
 // returns the passed "defaultValue"
 func (a Array) Fetch(index int, defaultValue Element) Element {
 	val := a.At(index)
@@ -198,7 +198,7 @@ func (a Array) Fetch(index int, defaultValue Element) Element {
 	return defaultValue
 }
 
-// Array Fill will replace elements inplace starting from "start" counting
+// Fill will replace elements inplace starting from "start" counting
 // "length" elements with the passed "element" parameter, will return same array
 // object
 func (a Array) Fill(element Element, start int, length int) Array {
@@ -208,7 +208,7 @@ func (a Array) Fill(element Element, start int, length int) Array {
 	return a
 }
 
-// Array FillWith will replace elements from start counting "length" items,
+// FillWith will replace elements from start counting "length" items,
 // passing every index to block and replacing the element inplace with the
 // return value
 func (a Array) FillWith(start int, length int, block func(int) Element) Array {
@@ -218,7 +218,7 @@ func (a Array) FillWith(start int, length int, block func(int) Element) Array {
 	return a
 }
 
-// Array Index returns the index of the first element in array that is equal to
+// Index returns the index of the first element in array that is equal to
 // "element", returns -1 if the elements if not found
 func (a Array) Index(element Element) int {
 	for i, o := range a {
@@ -229,7 +229,7 @@ func (a Array) Index(element Element) int {
 	return -1
 }
 
-// Array IndexBy returns first element that block returns true for, -1 otherwise
+// IndexBy returns first element that block returns true for, -1 otherwise
 func (a Array) IndexBy(block func(Element) bool) int {
 	for i, o := range a {
 		if block(o) {
@@ -240,29 +240,29 @@ func (a Array) IndexBy(block func(Element) bool) int {
 	return -1
 }
 
-// Array First returns first element of array
+// First returns first element of array
 func (a Array) First() Element {
 	return a.At(0)
 }
 
-// Array Last returns last element of array
+// Last returns last element of array
 func (a Array) Last() Element {
 	return a.At(len(a) - 1)
 }
 
-// Array Firsts will return an array holding the first "count" elements of the
+// Firsts will return an array holding the first "count" elements of the
 // array
 func (a Array) Firsts(count int) Array {
 	return a[0:count]
 }
 
-// Array Lasts will return an array holding the lasts "count" elements of the
+// Lasts will return an array holding the lasts "count" elements of the
 // array
 func (a Array) Lasts(count int) Array {
 	return a[len(a)-count:]
 }
 
-// Array Flatten returns a flattened array of the current one, expanding any
+// Flatten returns a flattened array of the current one, expanding any
 // element that could be casted to Array recursively until no element could be flattened
 func (a Array) Flatten() Array {
 	result := Array{}
@@ -277,12 +277,12 @@ func (a Array) Flatten() Array {
 	return result
 }
 
-// Array Include will return true if element found in the array
+// Include will return true if element found in the array
 func (a Array) Include(element Element) bool {
 	return a.Index(element) != -1
 }
 
-// Array Insert will insert a set of elements in the index and will return a new
+// Insert will insert a set of elements in the index and will return a new
 // array
 func (a Array) Insert(index int, elements ...Element) Array {
 	result := Array{}
@@ -292,7 +292,7 @@ func (a Array) Insert(index int, elements ...Element) Array {
 	return result
 }
 
-// Array KeepIf will return an array contains all elements where "block"
+// KeepIf will return an array contains all elements where "block"
 // returned true for them
 func (a Array) KeepIf(block func(Element) bool) Array {
 	result := Array{}
@@ -304,7 +304,7 @@ func (a Array) KeepIf(block func(Element) bool) Array {
 	return result
 }
 
-// Array Map will return a new array replacing every element from current array
+// Map will return a new array replacing every element from current array
 // with the return value of the block
 func (a Array) Map(block func(Element) Element) Array {
 	result := Array{}
@@ -314,7 +314,7 @@ func (a Array) Map(block func(Element) Element) Array {
 	return result
 }
 
-// Array Max returns the element the returned the highest value when passed to
+// Max returns the element the returned the highest value when passed to
 // block
 func (a Array) Max(block func(Element) int) Element {
 	if len(a) == 0 {
@@ -333,7 +333,7 @@ func (a Array) Max(block func(Element) int) Element {
 	return maxElement
 }
 
-// Array Min returns the element the returned the lowest value when passed to
+// Min returns the element the returned the lowest value when passed to
 // block
 func (a Array) Min(block func(Element) int) Element {
 	if len(a) == 0 {
@@ -352,23 +352,23 @@ func (a Array) Min(block func(Element) int) Element {
 	return minElement
 }
 
-// Array Push appends an element to the array returning a new modified array
+// Push appends an element to the array returning a new modified array
 func (a Array) Push(element Element) Array {
 	return append(a, element)
 }
 
-// Array Pop removes the last element from the array, returning new array and
+// Pop removes the last element from the array, returning new array and
 // the element
 func (a Array) Pop() (Array, Element) {
 	return a[:len(a)-1], a[len(a)-1]
 }
 
-// Array Unshift adds an element to the array returning a new modified array
+// Unshift adds an element to the array returning a new modified array
 func (a Array) Unshift(element Element) Array {
 	return append(Array{element}, a...)
 }
 
-// Array Shift will remove the first element of the array returning the element
+// Shift will remove the first element of the array returning the element
 // and a modified array
 func (a Array) Shift() (Element, Array) {
 	if len(a) == 0 {
@@ -377,7 +377,7 @@ func (a Array) Shift() (Element, Array) {
 	return a[0], a[1:]
 }
 
-// Array Reverse will reverse the array in reverse returning the array reference
+// Reverse will reverse the array in reverse returning the array reference
 // again
 func (a Array) Reverse() Array {
 	for i := len(a)/2 - 1; i >= 0; i-- {
@@ -387,7 +387,7 @@ func (a Array) Reverse() Array {
 	return a
 }
 
-// Array Shuffle will randomly shuffle an array elements order returning array
+// Shuffle will randomly shuffle an array elements order returning array
 // reference again
 func (a Array) Shuffle() Array {
 	for i := len(a) - 1; i > 0; i-- {
