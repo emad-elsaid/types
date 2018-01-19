@@ -293,6 +293,13 @@ func TestArrayIndexBy(t *testing.T) {
 	if index != 2 {
 		t.Errorf("Expected element 3 index to be 2 got %d instead", index)
 	}
+
+	index = a.IndexBy(func(element Element) bool {
+		return element.(int) == -1
+	})
+	if index != -1 {
+		t.Errorf("Expected element -1 index to be -1 go %d instead", index)
+	}
 }
 
 func TestArrayFirst(t *testing.T) {
@@ -391,10 +398,16 @@ func TestArrayMax(t *testing.T) {
 	if result != 4 {
 		t.Errorf("Expected max to be 4 found %d", result)
 	}
+
+	a = Array{}
+	result = a.Max(identity)
+	if result != nil {
+		t.Errorf("Expected max of empty array to be nil got %d", result)
+	}
 }
 
 func TestArrayMin(t *testing.T) {
-	a := Array{1, 2, 3, 4}
+	a := Array{4, 3, 2, 1}
 	identity := func(e Element) int {
 		return e.(int)
 	}
@@ -402,6 +415,12 @@ func TestArrayMin(t *testing.T) {
 	result := a.Min(identity)
 	if result != 1 {
 		t.Errorf("Expected min to be 4 found %d", result)
+	}
+
+	a = Array{}
+	result = a.Min(identity)
+	if result != nil {
+		t.Errorf("Expected min of empty array to be %d", result)
 	}
 }
 
@@ -436,6 +455,12 @@ func TestArrayShift(t *testing.T) {
 	AssertArraysEquals(t, result, a)
 	if e != 1 {
 		t.Errorf("Expected element to be 1 got %d", e)
+	}
+
+	a = Array{}
+	e, a = a.Shift()
+	if e != nil {
+		t.Errorf("Expected element to be nil got %d", e)
 	}
 }
 
