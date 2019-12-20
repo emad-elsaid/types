@@ -3,7 +3,7 @@ package types
 import "fmt"
 
 func ExampleArray() {
-	a := Array{1, 2, 3, 4, 5, 6}
+	a := ElementArray{1, 2, 3, 4, 5, 6}
 
 	// multiply every element by 100
 	a = a.Map(func(e Element) Element {
