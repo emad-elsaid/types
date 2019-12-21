@@ -76,3 +76,35 @@ func (a Array) Unshift(element Element) Array
 func (a Array) Reduce(block func(Element) bool) Array
 func (a Array) Select(block func(Element) bool) Array
 ```
+
+## CLI generator for your type
+
+To install the `array` command, which generate the type specific array code
+
+```
+go get github.com/emad-elsaid/types/cmd/array
+```
+
+## Generating the methods for your type
+
+Lets say you have a type `Record`, and you want to generate a type that
+represent an array of records `Records` that has all of the previous methods,
+then write in in a file called `records.go` you'll need to execute the following
+
+```
+array -element Record -array Records -package db -output records.go
+```
+
+The usage for `array` is as follows:
+
+```
+Usage of ./array:
+  -array string
+        the name of the slice of your element (default "stringArray")
+  -element string
+        the single element of your array (default "string")
+  -output string
+        where to write the output (default "/dev/stdout")
+  -package string
+        package name the new file will belong to (default "main")
+```

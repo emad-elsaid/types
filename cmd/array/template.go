@@ -1,20 +1,20 @@
 // Package types provides a generic data types similar to that of Ruby
-package types
+package main
+const tmpl string = `
+package {{.Package}}
 
 import "math/rand"
 
-// Element is the element of the ElementArray
-type Element interface{}
+// {{.Array}} is an alias for a slice of variables that vary in types
+// {{.Array}} can hold any data type, it also allow different types
+// in the same {{.Array}}
 
-// ElementArray is an alias for a slice of variables that vary in types
-// ElementArray can hold any data type, it also allow different types
-// in the same ElementArray
-type ElementArray []Element
+type {{.Array}} []{{.Element}}
 
 // At returns element by index, a negative index counts from the end of
-// the ElementArray
+// the {{.Array}}
 // if index is out of range it returns nil
-func (a ElementArray) At(index int) Element {
+func (a {{.Array}}) At(index int) {{.Element}} {
 	len := len(a)
 
 	if index < 0 {
@@ -31,8 +31,8 @@ func (a ElementArray) At(index int) Element {
 	return nil
 }
 
-// CountElement returns number of elements equal to "element" in ElementArray
-func (a ElementArray) CountElement(element Element) (count int) {
+// Count{{.Element}} returns number of elements equal to "element" in {{.Array}}
+func (a {{.Array}}) Count{{.Element}}(element {{.Element}}) (count int) {
 	for _, o := range a {
 		if o == element {
 			count++
@@ -42,7 +42,7 @@ func (a ElementArray) CountElement(element Element) (count int) {
 }
 
 // CountBy returns number of elements which "block" returns true for
-func (a ElementArray) CountBy(block func(Element) bool) (count int) {
+func (a {{.Array}}) CountBy(block func({{.Element}}) bool) (count int) {
 	for _, o := range a {
 		if block(o) {
 			count++
@@ -51,9 +51,9 @@ func (a ElementArray) CountBy(block func(Element) bool) (count int) {
 	return count
 }
 
-// Cycle will cycle through ElementArray elements "count" times passing each
+// Cycle will cycle through {{.Array}} elements "count" times passing each
 // element to "block" function
-func (a ElementArray) Cycle(count int, block func(Element)) {
+func (a {{.Array}}) Cycle(count int, block func({{.Element}})) {
 	for i := 0; i < count; i++ {
 		for _, v := range a {
 			block(v)
@@ -61,9 +61,9 @@ func (a ElementArray) Cycle(count int, block func(Element)) {
 	}
 }
 
-// Any returns true if "block" returned true for any of the ElementArray elements
+// Any returns true if "block" returned true for any of the {{.Array}} elements
 // and false otherwise
-func (a ElementArray) Any(block func(Element) bool) bool {
+func (a {{.Array}}) Any(block func({{.Element}}) bool) bool {
 	for _, o := range a {
 		if block(o) {
 			return true
@@ -73,9 +73,9 @@ func (a ElementArray) Any(block func(Element) bool) bool {
 	return false
 }
 
-// All returns true if "block" returned true for all elements in ElementArray and
+// All returns true if "block" returned true for all elements in {{.Array}} and
 // false otherwise
-func (a ElementArray) All(block func(Element) bool) bool {
+func (a {{.Array}}) All(block func({{.Element}}) bool) bool {
 	for _, o := range a {
 		if !block(o) {
 			return false
@@ -86,8 +86,8 @@ func (a ElementArray) All(block func(Element) bool) bool {
 }
 
 // Compact will return a new array with all non-nil elements
-func (a ElementArray) Compact() ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) Compact() {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
 		if o != nil {
 			result = append(result, o)
@@ -97,8 +97,8 @@ func (a ElementArray) Compact() ElementArray {
 }
 
 // Delete will remove all elements that are equal to the passed element
-func (a ElementArray) Delete(element Element) ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) Delete(element {{.Element}}) {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
 		if o != element {
 			result = append(result, o)
@@ -108,13 +108,13 @@ func (a ElementArray) Delete(element Element) ElementArray {
 }
 
 // DeleteAt will delete an element by index
-func (a ElementArray) DeleteAt(index int) ElementArray {
+func (a {{.Array}}) DeleteAt(index int) {{.Array}} {
 	return append(a[:index], a[index+1:]...)
 }
 
 // DeleteIf will delete all elements which "block" returns true for
-func (a ElementArray) DeleteIf(block func(Element) bool) ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) DeleteIf(block func({{.Element}}) bool) {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
 		if !block(o) {
 			result = append(result, o)
@@ -125,31 +125,31 @@ func (a ElementArray) DeleteIf(block func(Element) bool) ElementArray {
 
 // Drop will return an array without the first "count" elements from the
 // beginning
-func (a ElementArray) Drop(count int) ElementArray {
+func (a {{.Array}}) Drop(count int) {{.Array}} {
 	return a[count:]
 }
 
 // Each will execute "block" for each element in array
-func (a ElementArray) Each(block func(Element)) {
+func (a {{.Array}}) Each(block func({{.Element}})) {
 	for _, o := range a {
 		block(o)
 	}
 }
 
 // EachIndex will execute "block" for each element index in array
-func (a ElementArray) EachIndex(block func(int)) {
+func (a {{.Array}}) EachIndex(block func(int)) {
 	for i := range a {
 		block(i)
 	}
 }
 
 // IsEmpty will return true of array empty, false otherwise
-func (a ElementArray) IsEmpty() bool {
+func (a {{.Array}}) IsEmpty() bool {
 	return len(a) == 0
 }
 
 // IsEq returns true if array the "other" array
-func (a ElementArray) IsEq(other ElementArray) bool {
+func (a {{.Array}}) IsEq(other {{.Array}}) bool {
 	// check length
 	if len(a) != len(other) {
 		return false
@@ -166,13 +166,13 @@ func (a ElementArray) IsEq(other ElementArray) bool {
 }
 
 // Len returns number of elements in array
-func (a ElementArray) Len() int {
+func (a {{.Array}}) Len() int {
 	return len(a)
 }
 
 // Fetch will return the element in "index", if it doesn't exist it
 // returns the passed "defaultValue"
-func (a ElementArray) Fetch(index int, defaultValue Element) Element {
+func (a {{.Array}}) Fetch(index int, defaultValue {{.Element}}) {{.Element}} {
 	val := a.At(index)
 	if val != nil {
 		return val
@@ -184,7 +184,7 @@ func (a ElementArray) Fetch(index int, defaultValue Element) Element {
 // Fill will replace elements inplace starting from "start" counting
 // "length" elements with the passed "element" parameter, will return same array
 // object
-func (a ElementArray) Fill(element Element, start int, length int) ElementArray {
+func (a {{.Array}}) Fill(element {{.Element}}, start int, length int) {{.Array}} {
 	for length--; length >= 0; length-- {
 		a[start+length] = element
 	}
@@ -194,7 +194,7 @@ func (a ElementArray) Fill(element Element, start int, length int) ElementArray 
 // FillWith will replace elements from start counting "length" items,
 // passing every index to block and replacing the element inplace with the
 // return value
-func (a ElementArray) FillWith(start int, length int, block func(int) Element) ElementArray {
+func (a {{.Array}}) FillWith(start int, length int, block func(int) {{.Element}}) {{.Array}} {
 	for length--; length >= 0; length-- {
 		a[start+length] = block(start + length)
 	}
@@ -203,7 +203,7 @@ func (a ElementArray) FillWith(start int, length int, block func(int) Element) E
 
 // Index returns the index of the first element in array that is equal to
 // "element", returns -1 if the elements if not found
-func (a ElementArray) Index(element Element) int {
+func (a {{.Array}}) Index(element {{.Element}}) int {
 	for i, o := range a {
 		if o == element {
 			return i
@@ -213,7 +213,7 @@ func (a ElementArray) Index(element Element) int {
 }
 
 // IndexBy returns first element that block returns true for, -1 otherwise
-func (a ElementArray) IndexBy(block func(Element) bool) int {
+func (a {{.Array}}) IndexBy(block func({{.Element}}) bool) int {
 	for i, o := range a {
 		if block(o) {
 			return i
@@ -224,33 +224,33 @@ func (a ElementArray) IndexBy(block func(Element) bool) int {
 }
 
 // First returns first element of array
-func (a ElementArray) First() Element {
+func (a {{.Array}}) First() {{.Element}} {
 	return a.At(0)
 }
 
 // Last returns last element of array
-func (a ElementArray) Last() Element {
+func (a {{.Array}}) Last() {{.Element}} {
 	return a.At(len(a) - 1)
 }
 
 // Firsts will return an array holding the first "count" elements of the
 // array
-func (a ElementArray) Firsts(count int) ElementArray {
+func (a {{.Array}}) Firsts(count int) {{.Array}} {
 	return a[0:count]
 }
 
 // Lasts will return an array holding the lasts "count" elements of the
 // array
-func (a ElementArray) Lasts(count int) ElementArray {
+func (a {{.Array}}) Lasts(count int) {{.Array}} {
 	return a[len(a)-count:]
 }
 
 // Flatten returns a flattened array of the current one, expanding any
-// element that could be casted to ElementArray recursively until no element could be flattened
-func (a ElementArray) Flatten() ElementArray {
-	result := ElementArray{}
+// element that could be casted to {{.Array}} recursively until no element could be flattened
+func (a {{.Array}}) Flatten() {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
-		element, ok := o.(ElementArray)
+		element, ok := o.({{.Array}})
 		if ok {
 			result = append(result, element.Flatten()...)
 		} else {
@@ -261,14 +261,14 @@ func (a ElementArray) Flatten() ElementArray {
 }
 
 // Include will return true if element found in the array
-func (a ElementArray) Include(element Element) bool {
+func (a {{.Array}}) Include(element {{.Element}}) bool {
 	return a.Index(element) != -1
 }
 
 // Insert will insert a set of elements in the index and will return a new
 // array
-func (a ElementArray) Insert(index int, elements ...Element) ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) Insert(index int, elements ...{{.Element}}) {{.Array}} {
+	result := {{.Array}}{}
 	result = append(result, a[0:index]...)
 	result = append(result, elements...)
 	result = append(result, a[index:]...)
@@ -277,8 +277,8 @@ func (a ElementArray) Insert(index int, elements ...Element) ElementArray {
 
 // KeepIf will return an array contains all elements where "block"
 // returned true for them
-func (a ElementArray) KeepIf(block func(Element) bool) ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) KeepIf(block func({{.Element}}) bool) {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
 		if block(o) {
 			result = append(result, o)
@@ -288,19 +288,19 @@ func (a ElementArray) KeepIf(block func(Element) bool) ElementArray {
 }
 
 // Select is an alias for KeepIf
-func (a ElementArray) Select(block func(Element) bool) ElementArray {
+func (a {{.Array}}) Select(block func({{.Element}}) bool) {{.Array}} {
 	return a.KeepIf(block)
 }
 
 // Reduce is an alias for KeepIf
-func (a ElementArray) Reduce(block func(Element) bool) ElementArray {
+func (a {{.Array}}) Reduce(block func({{.Element}}) bool) {{.Array}} {
 	return a.KeepIf(block)
 }
 
 // Map will return a new array replacing every element from current array
 // with the return value of the block
-func (a ElementArray) Map(block func(Element) Element) ElementArray {
-	result := ElementArray{}
+func (a {{.Array}}) Map(block func({{.Element}}) {{.Element}}) {{.Array}} {
+	result := {{.Array}}{}
 	for _, o := range a {
 		result = append(result, block(o))
 	}
@@ -309,61 +309,61 @@ func (a ElementArray) Map(block func(Element) Element) ElementArray {
 
 // Max returns the element the returned the highest value when passed to
 // block
-func (a ElementArray) Max(block func(Element) int) Element {
+func (a {{.Array}}) Max(block func({{.Element}}) int) {{.Element}} {
 	if len(a) == 0 {
 		return nil
 	}
-	var maxElement Element = a[0]
+	var max{{.Element}} {{.Element}} = a[0]
 	var maxScore = block(a[0])
 	for _, o := range a[1:] {
 		score := block(o)
 		if score > maxScore {
-			maxElement = o
+			max{{.Element}} = o
 			maxScore = score
 		}
 	}
 
-	return maxElement
+	return max{{.Element}}
 }
 
 // Min returns the element the returned the lowest value when passed to
 // block
-func (a ElementArray) Min(block func(Element) int) Element {
+func (a {{.Array}}) Min(block func({{.Element}}) int) {{.Element}} {
 	if len(a) == 0 {
 		return nil
 	}
-	var minElement Element = a[0]
+	var min{{.Element}} {{.Element}} = a[0]
 	var minScore = block(a[0])
 	for _, o := range a[1:] {
 		score := block(o)
 		if score < minScore {
-			minElement = o
+			min{{.Element}} = o
 			minScore = score
 		}
 	}
 
-	return minElement
+	return min{{.Element}}
 }
 
 // Push appends an element to the array returning a new modified array
-func (a ElementArray) Push(element Element) ElementArray {
+func (a {{.Array}}) Push(element {{.Element}}) {{.Array}} {
 	return append(a, element)
 }
 
 // Pop removes the last element from the array, returning new array and
 // the element
-func (a ElementArray) Pop() (ElementArray, Element) {
+func (a {{.Array}}) Pop() ({{.Array}}, {{.Element}}) {
 	return a[:len(a)-1], a[len(a)-1]
 }
 
 // Unshift adds an element to the array returning a new modified array
-func (a ElementArray) Unshift(element Element) ElementArray {
-	return append(ElementArray{element}, a...)
+func (a {{.Array}}) Unshift(element {{.Element}}) {{.Array}} {
+	return append({{.Array}}{element}, a...)
 }
 
 // Shift will remove the first element of the array returning the element
 // and a modified array
-func (a ElementArray) Shift() (Element, ElementArray) {
+func (a {{.Array}}) Shift() ({{.Element}}, {{.Array}}) {
 	if len(a) == 0 {
 		return nil, a
 	}
@@ -372,7 +372,7 @@ func (a ElementArray) Shift() (Element, ElementArray) {
 
 // Reverse will reverse the array in reverse returning the array reference
 // again
-func (a ElementArray) Reverse() ElementArray {
+func (a {{.Array}}) Reverse() {{.Array}} {
 	for i := len(a)/2 - 1; i >= 0; i-- {
 		opp := len(a) - 1 - i
 		a[i], a[opp] = a[opp], a[i]
@@ -382,10 +382,11 @@ func (a ElementArray) Reverse() ElementArray {
 
 // Shuffle will randomly shuffle an array elements order returning array
 // reference again
-func (a ElementArray) Shuffle() ElementArray {
+func (a {{.Array}}) Shuffle() {{.Array}} {
 	for i := len(a) - 1; i > 0; i-- {
 		j := rand.Intn(i + 1)
 		a[i], a[j] = a[j], a[i]
 	}
 	return a
 }
+`

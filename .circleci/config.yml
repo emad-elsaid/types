@@ -7,6 +7,7 @@ jobs:
     working_directory: /go/src/github.com/emad-elsaid/types
     steps:
       - checkout
-      - run: go get -v -t -d ./...
+      - run: go generate cmd/array/array.go
+      - run: go build cmd/array/*.go
       - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       - run: bash <(curl -s https://codecov.io/bash)

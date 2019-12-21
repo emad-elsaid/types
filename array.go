@@ -3,12 +3,10 @@ package types
 
 import "math/rand"
 
-// Element is the element of the ElementArray
-type Element interface{}
-
 // ElementArray is an alias for a slice of variables that vary in types
 // ElementArray can hold any data type, it also allow different types
 // in the same ElementArray
+type Element interface{}
 type ElementArray []Element
 
 // At returns element by index, a negative index counts from the end of
