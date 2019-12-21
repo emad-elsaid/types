@@ -8,5 +8,5 @@ jobs:
     steps:
       - checkout
       - run: go build cmd/array/*.go
-      - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic .
       - run: bash <(curl -s https://codecov.io/bash)
