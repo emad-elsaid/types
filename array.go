@@ -3,10 +3,6 @@ package types
 
 import "math/rand"
 
-// Element is an empty interface that allow it to be used in any generic
-// structure
-type Element interface{}
-
 // Array is an alias for a slice of variables that vary in types
 // Array can hold any data type, it also allow different types
 // in the same Array
