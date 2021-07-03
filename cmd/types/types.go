@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/printer"
@@ -19,7 +18,7 @@ func main() {
 	var pkg = flag.String("package", "types", "package name the new file will belong to")
 	var element = flag.String("element", "string", "the single element of your array")
 	var array = flag.String("array", "stringArray", "the name of the slice of your element")
-	var output = flag.String("output", "string_array", "file name prefix to write the output, will write to output.go and output_test.go")
+	var output = flag.String("output", "/dev/stdout", "file name of the output")
 	flag.Parse()
 
 	replacements := map[string]string{
@@ -29,10 +28,7 @@ func main() {
 	}
 
 	arrayOut := parseAndReplace("array.go", types.ArrayTmpl, replacements)
-	os.WriteFile(fmt.Sprintf("%s.go", *output), arrayOut, 0755)
-
-	arrayTestOut := parseAndReplace("array_test.go", types.ArrayTestTmpl, replacements)
-	os.WriteFile(fmt.Sprintf("%s_test.go", *output), arrayTestOut, 0755)
+	os.WriteFile(*output, arrayOut, 0755)
 }
 
 func parseAndReplace(inputFileName, inputContent string, replacements map[string]string) []byte {
