@@ -72,6 +72,7 @@ func (a Slice[T]) Push(element T) Slice[T]
 func (a Slice[T]) Reduce(block func(T) bool) Slice[T]
 func (a Slice[T]) Reverse() Slice[T]
 func (a Slice[T]) Select(block func(T) bool) Slice[T]
+func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T]
 func (a Slice[T]) Shift() (T, Slice[T])
 func (a Slice[T]) Shuffle() Slice[T]
 func (a Slice[T]) Unshift(element T) Slice[T]
