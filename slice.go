@@ -262,6 +262,17 @@ func (a Slice[T]) Select(block func(T) bool) Slice[T] {
 	return a.KeepIf(block)
 }
 
+// SelectUntil selects from the start of the slice until the block returns true,
+// excluding the item that returned true.
+func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T] {
+	index := a.IndexBy(block)
+	if index == -1 {
+		return a
+	}
+
+	return a[0:index]
+}
+
 // Reduce is an alias for KeepIf
 func (a Slice[T]) Reduce(block func(T) bool) Slice[T] {
 	return a.KeepIf(block)

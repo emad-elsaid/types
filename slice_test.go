@@ -32,7 +32,7 @@ func TestSliceAt(t *testing.T) {
 	}
 
 	result := a.At(8)
-	if  result != nil {
+	if result != nil {
 		t.Errorf("With %d expected %v but found %d", 8, nil, result)
 	}
 }
@@ -219,7 +219,7 @@ func TestSliceFetch(t *testing.T) {
 		t.Errorf("Expected 1 but got %d", result)
 	}
 
-	result = a.Fetch(-1,-1)
+	result = a.Fetch(-1, -1)
 	if result != 2 {
 		t.Errorf("Expected 2 but bot %d", result)
 	}
@@ -351,6 +351,15 @@ func TestSliceSelect(t *testing.T) {
 		return e > 3
 	})
 	result := Slice[int]{4, 5, 6}
+	AssertSlicesEquals(t, result, a)
+}
+
+func TestSliceSelectUntil(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5, 6}
+	a = a.SelectUntil(func(e int) bool {
+		return e == 3
+	})
+	result := Slice[int]{1, 2}
 	AssertSlicesEquals(t, result, a)
 }
 
