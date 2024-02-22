@@ -370,3 +370,18 @@ func (a Slice[T]) Shuffle() Slice[T] {
 	}
 	return a
 }
+
+// Unique returns a unique list of elements in the slice. order or the result is
+// same order of the items in the source slice
+func (a Slice[T]) Unique() Slice[T] {
+	keys := map[T]struct{}{}
+	out := Slice[T]{}
+	for _, v := range a {
+		if _, ok := keys[v]; !ok {
+			keys[v] = struct{}{}
+			out = append(out, v)
+		}
+	}
+
+	return out
+}

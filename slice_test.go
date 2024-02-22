@@ -472,3 +472,10 @@ func TestSliceShuffle(t *testing.T) {
 		t.Error("Expected arrays not to equal after shuffle but it was the same")
 	}
 }
+
+func TestSliceUnique(t *testing.T) {
+	a := Slice[int]{1, 2, 1, 3, 1, 2, 3, 4}
+	a = a.Unique()
+	result := Slice[int]{1, 2, 3, 4}
+	AssertSlicesEquals(t, result, a)
+}
