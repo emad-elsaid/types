@@ -3,6 +3,7 @@ package types
 import "sync"
 
 // Map is a wrapper for sync.Map with same methods (except for CompareAnd*)
+// Check: https://pkg.go.dev/sync#Map
 type Map[K comparable, V any] struct {
 	store sync.Map
 }
@@ -22,16 +23,19 @@ func (m *Map[K, V]) Load(k K) (v V, ok bool) {
 	return
 }
 
+// Delete see sync.Map#Delete
 func (m *Map[K, V]) Delete(k K) {
 	m.store.Delete(k)
 }
 
+// Range see sync.Map#Range
 func (m *Map[K, V]) Range(f func(k K, v V) bool) {
 	m.store.Range(func(k, v any) bool {
 		return f(k.(K), v.(V))
 	})
 }
 
+// LoadAndDelete see sync.Map#LoadAndDelete
 func (m *Map[K, V]) LoadAndDelete(k K) (v V, loaded bool) {
 	var a any
 	a, loaded = m.store.LoadAndDelete(k)
@@ -42,18 +46,20 @@ func (m *Map[K, V]) LoadAndDelete(k K) (v V, loaded bool) {
 	return
 }
 
+// LoadOrStore see sync.Map#LoadOrStore
 func (m *Map[K, V]) LoadOrStore(k K, v V) (actual V, loaded bool) {
 	var a any
 	a, loaded = m.store.LoadOrStore(k, v)
-	v = a.(V)
+	actual = a.(V)
 
 	return
 }
 
+// Swap see sync.Map#Swap
 func (m *Map[K, V]) Swap(k K, v V) (previous V, loaded bool) {
 	var a any
 	a, loaded = m.store.Swap(k, v)
-	v = a.(V)
+	previous, _ = a.(V)
 
 	return
 }
