@@ -1,7 +1,10 @@
 // Package types provides a generic data types similar to that of Ruby
 package types
 
-import "math/rand"
+import (
+	"math/rand"
+	"slices"
+)
 
 // Slice is an alias for a slice of variables that vary in types
 // Slice can hold any comparable data type
@@ -50,7 +53,7 @@ func (a Slice[T]) CountBy(block func(T) bool) (count int) {
 // Cycle will cycle through Slice elements "count" times passing each
 // element to "block" function
 func (a Slice[T]) Cycle(count int, block func(T)) {
-	for i := 0; i < count; i++ {
+	for range count {
 		for _, v := range a {
 			block(v)
 		}
@@ -60,13 +63,7 @@ func (a Slice[T]) Cycle(count int, block func(T)) {
 // Any returns true if "block" returned true for any of the Slice elements
 // and false otherwise
 func (a Slice[T]) Any(block func(T) bool) bool {
-	for _, o := range a {
-		if block(o) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(a, block)
 }
 
 // All returns true if "block" returned true for all elements in Slice and
