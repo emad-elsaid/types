@@ -1527,8 +1527,11 @@ func TestSet_String(t *testing.T) {
 			initial: []int{},
 			want:    "Set{}",
 		},
-		// Note: For non-empty sets, we can't test exact string matches
-		// because the iteration order of maps is not guaranteed
+		{
+			name:    "multiple elements",
+			initial: []int{1, 2, 3},
+			want:    "Set{1, 2, 3}",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1600,13 +1603,4 @@ func TestSet_Integration(t *testing.T) {
 			t.Errorf("Long words filter: got %v, want %v", got, expected)
 		}
 	})
-}
-
-func TestSetString(t *testing.T) {
-	set := NewSet("apple", "banana", "cherry")
-	str := set.String()
-
-	if str != "Set{apple, banana, cherry}" {
-		t.Errorf("String() format incorrect: %v", str)
-	}
 }
