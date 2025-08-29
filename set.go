@@ -13,9 +13,9 @@ type Set[T comparable] struct {
 	items map[T]struct{}
 }
 
-// New creates and returns a new Set initialized with elements from the given slice.
+// NewSet creates and returns a new Set initialized with elements from the given slice.
 // Duplicate elements in the slice will be automatically deduplicated.
-func New[T comparable](slice ...T) *Set[T] {
+func NewSet[T comparable](slice ...T) *Set[T] {
 	s := Set[T]{
 		order: make([]T, 0, len(slice)),
 		items: make(map[T]struct{}, len(slice)),
@@ -86,7 +86,7 @@ func (s *Set[T]) ToSlice() []T {
 
 // Clone creates and returns a shallow copy of the set.
 func (s *Set[T]) Clone() *Set[T] {
-	return New(s.order...)
+	return NewSet(s.order...)
 }
 
 // Union returns a new set containing all elements that are in either this set or the other set.
@@ -102,7 +102,7 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 // Intersection returns a new set containing only elements that are in both this
 // set and the other set in the order they were added to the first set.
 func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	for _, item := range s.order {
 		if other.Contains(item) {
 			result.Add(item)
@@ -114,7 +114,7 @@ func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 // Difference returns a new set containing elements that are in this set but not
 // in the other set in the order they were added to the first set.
 func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	for _, item := range s.order {
 		if !other.Contains(item) {
 			result.Add(item)
@@ -164,7 +164,7 @@ func (s *Set[T]) Each(fn func(T)) {
 // SetMap applies a transformation function to each element and returns a new set with the results.
 // The transformation function must return a comparable type.
 func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
-	result := New[U]()
+	result := NewSet[U]()
 	result.order = make([]U, 0, len(s.order))
 	result.items = make(map[U]struct{}, len(s.order))
 
@@ -177,7 +177,7 @@ func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
 
 // Filter returns a new set containing only elements that satisfy the predicate function.
 func (s *Set[T]) Filter(predicate func(T) bool) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	result.order = make([]T, 0, len(s.order))
 	result.items = make(map[T]struct{}, len(s.order))
 
@@ -258,8 +258,8 @@ func Reduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
 // Returns two sets: the first contains elements that satisfy the predicate,
 // the second contains elements that do not satisfy the predicate.
 func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T]) {
-	trueSet := New[T]()
-	falseSet := New[T]()
+	trueSet := NewSet[T]()
+	falseSet := NewSet[T]()
 
 	for _, item := range s.order {
 		if predicate(item) {
@@ -276,10 +276,10 @@ func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T]) {
 // The selection of elements is not guaranteed to be in any particular order.
 func (s *Set[T]) Take(n int) *Set[T] {
 	if n <= 0 {
-		return New[T]()
+		return NewSet[T]()
 	}
 
-	result := New[T]()
+	result := NewSet[T]()
 	count := 0
 
 	for _, item := range s.order {
@@ -300,7 +300,7 @@ func (s *Set[T]) Drop(n int) *Set[T] {
 		return s.Clone()
 	}
 
-	result := New[T]()
+	result := NewSet[T]()
 	count := 0
 
 	for _, item := range s.order {
