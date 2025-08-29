@@ -1601,3 +1601,12 @@ func TestSet_Integration(t *testing.T) {
 		}
 	})
 }
+
+func TestSetString(t *testing.T) {
+	set := NewSet("apple", "banana", "cherry")
+	str := set.String()
+
+	if str != "Set{apple, banana, cherry}" {
+		t.Errorf("String() format incorrect: %v", str)
+	}
+}
