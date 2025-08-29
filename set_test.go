@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 )
 
@@ -1539,15 +1538,8 @@ func TestSet_String(t *testing.T) {
 			set := NewSet(tt.initial...)
 			got := set.String()
 
-			if tt.name == "empty set" {
-				if got != tt.want {
-					t.Errorf("String() = %v, want %v", got, tt.want)
-				}
-			} else {
-				// For non-empty sets, just verify format
-				if !strings.HasPrefix(got, "Set{") || !strings.HasSuffix(got, "}") {
-					t.Errorf("String() format incorrect: %v", got)
-				}
+			if got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
