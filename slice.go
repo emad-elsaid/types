@@ -382,3 +382,31 @@ func (a Slice[T]) Unique() Slice[T] {
 
 	return out
 }
+
+// Partition divides the slice into two new slices based on the predicate function.
+// Returns two slices: the first contains elements that satisfy the predicate,
+// the second contains elements that do not satisfy the predicate.
+func (s Slice[T]) Partition(predicate func(T) bool) (Slice[T], Slice[T]) {
+	trueSet := Slice[T]{}
+	falseSet := Slice[T]{}
+
+	for _, item := range s {
+		if predicate(item) {
+			trueSet = trueSet.Push(item)
+		} else {
+			falseSet = falseSet.Push(item)
+		}
+	}
+
+	return trueSet, falseSet
+}
+
+// SliceReduce applies a function against an accumulator and each element in the slice
+func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U {
+	result := initial
+	for _, item := range s {
+		result = fn(result, item)
+	}
+
+	return result
+}

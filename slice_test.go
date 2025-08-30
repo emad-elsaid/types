@@ -1,6 +1,10 @@
 package types
 
-import "testing"
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
 
 func AssertSlicesEquals[T comparable](t *testing.T, a1 Slice[T], a2 Slice[T]) {
 	if len(a1) != len(a2) {
@@ -363,15 +367,6 @@ func TestSliceSelectUntil(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
-func TestSliceReduce(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	a = a.Reduce(func(e int) bool {
-		return e > 3
-	})
-	result := Slice[int]{4, 5, 6}
-	AssertSlicesEquals(t, result, a)
-}
-
 func TestSliceMap(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4, 5}
 	inc := func(e int) int {
@@ -478,4 +473,127 @@ func TestSliceUnique(t *testing.T) {
 	a = a.Unique()
 	result := Slice[int]{1, 2, 3, 4}
 	AssertSlicesEquals(t, result, a)
+}
+
+func TestSliceReduce(t *testing.T) {
+	tests := []struct {
+		name        string
+		initial     []int
+		initial_val int
+		reduceFn    func(int, int) int
+		want        int
+	}{
+		{
+			name:        "empty slice",
+			initial:     []int{},
+			initial_val: 0,
+			reduceFn:    func(acc, n int) int { return acc + n },
+			want:        0,
+		},
+		{
+			name:        "sum all elements",
+			initial:     []int{1, 2, 3, 4, 5},
+			initial_val: 0,
+			reduceFn:    func(acc, n int) int { return acc + n },
+			want:        15,
+		},
+		{
+			name:        "multiply all elements",
+			initial:     []int{2, 3, 4},
+			initial_val: 1,
+			reduceFn:    func(acc, n int) int { return acc * n },
+			want:        24,
+		},
+		{
+			name:        "find maximum",
+			initial:     []int{3, 7, 2, 9, 1},
+			initial_val: 0,
+			reduceFn: func(acc, n int) int {
+				if n > acc {
+					return n
+				}
+				return acc
+			},
+			want: 9,
+		},
+		{
+			name:        "concatenate as string lengths",
+			initial:     []int{10, 100, 1000},
+			initial_val: 0,
+			reduceFn:    func(acc, n int) int { return acc + len(fmt.Sprintf("%d", n)) },
+			want:        9, // 2 + 3 + 4 characters
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Slice[int](tt.initial)
+			got := SliceReduce(s, tt.initial_val, tt.reduceFn)
+
+			if got != tt.want {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSlice_Partition(t *testing.T) {
+	tests := []struct {
+		name      string
+		initial   []int
+		predicate func(int) bool
+		wantTrue  []int
+		wantFalse []int
+	}{
+		{
+			name:      "empty slice",
+			initial:   []int{},
+			predicate: func(n int) bool { return n%2 == 0 },
+			wantTrue:  []int{},
+			wantFalse: []int{},
+		},
+		{
+			name:      "partition even and odd",
+			initial:   []int{1, 2, 3, 4, 5, 6},
+			predicate: func(n int) bool { return n%2 == 0 },
+			wantTrue:  []int{2, 4, 6},
+			wantFalse: []int{1, 3, 5},
+		},
+		{
+			name:      "partition greater than 3",
+			initial:   []int{1, 2, 3, 4, 5},
+			predicate: func(n int) bool { return n > 3 },
+			wantTrue:  []int{4, 5},
+			wantFalse: []int{1, 2, 3},
+		},
+		{
+			name:      "all elements satisfy predicate",
+			initial:   []int{2, 4, 6},
+			predicate: func(n int) bool { return n%2 == 0 },
+			wantTrue:  []int{2, 4, 6},
+			wantFalse: []int{},
+		},
+		{
+			name:      "no elements satisfy predicate",
+			initial:   []int{1, 3, 5},
+			predicate: func(n int) bool { return n%2 == 0 },
+			wantTrue:  []int{},
+			wantFalse: []int{1, 3, 5},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Slice[int](tt.initial)
+			gotTrue, gotFalse := s.Partition(tt.predicate)
+
+			if !reflect.DeepEqual([]int(gotTrue), []int(tt.wantTrue)) {
+				t.Errorf("Partition() true set = %v, want %v", gotTrue, tt.wantTrue)
+			}
+
+			if !reflect.DeepEqual([]int(gotFalse), []int(tt.wantFalse)) {
+				t.Errorf("Partition() false set = %v, want %v", gotFalse, tt.wantFalse)
+			}
+		})
+	}
 }

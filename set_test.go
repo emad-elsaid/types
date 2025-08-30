@@ -1260,7 +1260,7 @@ func TestSet_Count(t *testing.T) {
 	}
 }
 
-func TestReduce(t *testing.T) {
+func TestSetReduce(t *testing.T) {
 	tests := []struct {
 		name        string
 		initial     []int
@@ -1313,7 +1313,7 @@ func TestReduce(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			set := NewSet(tt.initial...)
-			got := Reduce(set, tt.initial_val, tt.reduceFn)
+			got := SetReduce(set, tt.initial_val, tt.reduceFn)
 
 			if got != tt.want {
 				t.Errorf("Reduce() = %v, want %v", got, tt.want)

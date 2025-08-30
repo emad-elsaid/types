@@ -244,9 +244,9 @@ func (s *Set[T]) Count(predicate func(T) bool) int {
 	return count
 }
 
-// Reduce applies a reduction function to all elements in the set, starting with an initial value.
+// SetReduce applies a reduction function to all elements in the set, starting with an initial value.
 // The reduction function takes the accumulated value and the current element, returning the new accumulated value.
-func Reduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
+func SetReduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
 	result := initial
 	for _, item := range s.order {
 		result = fn(result, item)
@@ -272,8 +272,7 @@ func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T]) {
 	return trueSet, falseSet
 }
 
-// Take returns a new set containing up to n elements from this set.
-// The selection of elements is not guaranteed to be in any particular order.
+// Take returns a new set containing up to n elements from this set in the order they were added.
 func (s *Set[T]) Take(n int) *Set[T] {
 	if n <= 0 {
 		return NewSet[T]()
@@ -293,8 +292,7 @@ func (s *Set[T]) Take(n int) *Set[T] {
 	return result
 }
 
-// Drop returns a new set with the first n elements removed.
-// The selection of which elements to drop is not guaranteed to be in any particular order.
+// Drop returns a new set with the first n elements removed in the order they were added.
 func (s *Set[T]) Drop(n int) *Set[T] {
 	if n <= 0 {
 		return s.Clone()
