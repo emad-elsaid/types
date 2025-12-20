@@ -350,8 +350,12 @@ func (a Slice[T]) Push(element T) Slice[T] {
 }
 
 // Pop removes the last element from the array, returning new array and
-// the element
+// the element. Returns the original slice and zero value if slice is empty.
 func (a Slice[T]) Pop() (Slice[T], T) {
+	if len(a) == 0 {
+		var zero T
+		return a, zero
+	}
 	return a[:len(a)-1], a[len(a)-1]
 }
 

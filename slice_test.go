@@ -505,6 +505,18 @@ func TestSlicePop(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSlicePopEmpty(t *testing.T) {
+	// Test popping from an empty slice
+	a := Slice[int]{}
+	newSlice, element := a.Pop()
+
+	// Should return empty slice and zero value
+	if element != 0 {
+		t.Errorf("Expected zero value (0) for element, got %d", element)
+	}
+	AssertSlicesEquals(t, a, newSlice)
+}
+
 func TestSliceUnshift(t *testing.T) {
 	a := Slice[int]{1, 2, 3}
 	a = a.Unshift(4)
