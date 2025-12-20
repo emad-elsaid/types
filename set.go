@@ -78,10 +78,12 @@ func (s *Set[T]) Clear() {
 	s.order = []T{}
 }
 
-// ToSlice returns a slice containing all elements in the set in the order they were added.
-// the slice is not a copy, modifying it will affect the set.
+// ToSlice returns a copy of the slice containing all elements in the set in the order they were added.
+// The returned slice is a copy, so modifying it will not affect the set.
 func (s *Set[T]) ToSlice() []T {
-	return s.order
+	result := make([]T, len(s.order))
+	copy(result, s.order)
+	return result
 }
 
 // Clone creates and returns a shallow copy of the set.
