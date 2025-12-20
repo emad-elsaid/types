@@ -156,6 +156,20 @@ func TestSliceDeleteAt(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceDeleteAtNoMutation(t *testing.T) {
+	// Test that DeleteAt doesn't mutate the original slice
+	original := Slice[int]{1, 2, 3, 4, 5}
+	originalCopy := Slice[int]{1, 2, 3, 4, 5}
+	result := original.DeleteAt(2)
+
+	// Verify the result is correct
+	expected := Slice[int]{1, 2, 4, 5}
+	AssertSlicesEquals(t, expected, result)
+
+	// Verify original slice is unchanged
+	AssertSlicesEquals(t, originalCopy, original)
+}
+
 func TestSliceDeleteIf(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4, 5, 6}
 	a = a.DeleteIf(func(e int) bool {
