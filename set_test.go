@@ -836,6 +836,22 @@ func TestSet_Each(t *testing.T) {
 	}
 }
 
+func TestSet_EachOrderPreserved(t *testing.T) {
+	// Test that Each iterates in insertion order
+	set := NewSet(5, 2, 8, 1, 9, 3)
+
+	var result []int
+	set.Each(func(item int) {
+		result = append(result, item)
+	})
+
+	// Verify elements are in insertion order
+	expected := []int{5, 2, 8, 1, 9, 3}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Each() did not preserve insertion order. Got %v, want %v", result, expected)
+	}
+}
+
 func TestSetMap(t *testing.T) {
 	tests := []struct {
 		name    string

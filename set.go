@@ -153,8 +153,7 @@ func (s *Set[T]) Equal(other *Set[T]) bool {
 	return s.Size() == other.Size() && s.IsSubset(other)
 }
 
-// Each iterates over all elements in the set and calls the provided function for each element.
-// The order of iteration is not guaranteed.
+// Each iterates over all elements in the set in insertion order and calls the provided function for each element.
 func (s *Set[T]) Each(fn func(T)) {
 	for _, item := range s.order {
 		fn(item)
