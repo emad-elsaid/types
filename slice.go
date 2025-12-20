@@ -91,7 +91,10 @@ func (a Slice[T]) Delete(element T) Slice[T] {
 
 // DeleteAt will delete an element by index
 func (a Slice[T]) DeleteAt(index int) Slice[T] {
-	return append(a[:index], a[index+1:]...)
+	result := make(Slice[T], 0, len(a)-1)
+	result = append(result, a[:index]...)
+	result = append(result, a[index+1:]...)
+	return result
 }
 
 // DeleteIf will delete all elements which "block" returns true for
