@@ -227,6 +227,12 @@ func (a Slice[T]) Last() *T {
 // Firsts will return an array holding the first "count" elements of the
 // array
 func (a Slice[T]) Firsts(count int) Slice[T] {
+	if count <= 0 {
+		return Slice[T]{}
+	}
+	if count >= len(a) {
+		return a
+	}
 	return a[0:count]
 }
 
