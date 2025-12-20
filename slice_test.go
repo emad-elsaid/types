@@ -369,6 +369,27 @@ func TestSliceLasts(t *testing.T) {
 	AssertSlicesEquals(t, result, a.Lasts(3))
 }
 
+func TestSliceLastsBoundsChecking(t *testing.T) {
+	a := Slice[int]{1, 2, 3}
+
+	// Test getting more elements than the slice has
+	result := a.Lasts(10)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting exactly the length of the slice
+	result = a.Lasts(3)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting negative count
+	result = a.Lasts(-5)
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+
+	// Test getting zero
+	result = a.Lasts(0)
+	AssertSlicesEquals(t, expected, result)
+}
+
 func TestSliceInclude(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4}
 	if !a.Include(1) {
