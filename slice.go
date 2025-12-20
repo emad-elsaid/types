@@ -111,6 +111,12 @@ func (a Slice[T]) DeleteIf(block func(T) bool) Slice[T] {
 // Drop will return an array without the first "count" elements from the
 // beginning
 func (a Slice[T]) Drop(count int) Slice[T] {
+	if count <= 0 {
+		return a
+	}
+	if count >= len(a) {
+		return Slice[T]{}
+	}
 	return a[count:]
 }
 

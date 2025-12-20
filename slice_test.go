@@ -186,6 +186,26 @@ func TestSliceDrop(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceDropBoundsChecking(t *testing.T) {
+	// Test dropping more elements than the slice has
+	a := Slice[int]{1, 2, 3}
+	result := a.Drop(10)
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+
+	// Test dropping exactly the length of the slice
+	result = a.Drop(3)
+	AssertSlicesEquals(t, expected, result)
+
+	// Test dropping negative count
+	result = a.Drop(-5)
+	AssertSlicesEquals(t, a, result)
+
+	// Test dropping zero
+	result = a.Drop(0)
+	AssertSlicesEquals(t, a, result)
+}
+
 func TestSliceEach(t *testing.T) {
 	a := Slice[int]{1, 2, 3}
 	sum := 0
