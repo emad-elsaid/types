@@ -67,6 +67,7 @@ func (a Slice[T]) Len() int
 func (a Slice[T]) Map(block func(T) T) Slice[T]
 func (a Slice[T]) Max(block func(T) int) T
 func (a Slice[T]) Min(block func(T) int) T
+func (a Slice[T]) Partition(predicate func(T) bool) (Slice[T], Slice[T])
 func (a Slice[T]) Pop() (Slice[T], T)
 func (a Slice[T]) Push(element T) Slice[T]
 func (a Slice[T]) Reduce(block func(T) bool) Slice[T]
@@ -75,5 +76,127 @@ func (a Slice[T]) Select(block func(T) bool) Slice[T]
 func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T]
 func (a Slice[T]) Shift() (T, Slice[T])
 func (a Slice[T]) Shuffle() Slice[T]
+func (a Slice[T]) Unique() Slice[T]
 func (a Slice[T]) Unshift(element T) Slice[T]
+func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U
+```
+
+## Set
+
+An order-preserving set of `comparable` type that stores unique elements
+
+### Example
+
+```go
+func ExampleSet() {
+	s := NewSet(1, 2, 3, 3, 4, 5)
+
+	// Set automatically deduplicates
+	fmt.Println(s.Size()) // 5
+
+	// Add elements
+	s.Add(6)
+	s.Add(3) // returns false, already exists
+
+	// Set operations
+	other := NewSet(4, 5, 6, 7)
+	union := s.Union(other)
+	intersection := s.Intersection(other)
+
+	// Functional operations
+	filtered := s.Filter(func(x int) bool {
+		return x > 3
+	})
+
+	doubled := SetMap(s, func(x int) int {
+		return x * 2
+	})
+
+	fmt.Print(filtered)
+
+	// Output: Set{4, 5, 6}
+}
+```
+
+### Set Methods available:
+
+```go
+func NewSet[T comparable](slice ...T) *Set[T]
+func (s *Set[T]) Add(item T) bool
+func (s *Set[T]) All(predicate func(T) bool) bool
+func (s *Set[T]) Any(predicate func(T) bool) bool
+func (s *Set[T]) Clear()
+func (s *Set[T]) Clone() *Set[T]
+func (s *Set[T]) Contains(item T) bool
+func (s *Set[T]) Count(predicate func(T) bool) int
+func (s *Set[T]) Difference(other *Set[T]) *Set[T]
+func (s *Set[T]) Drop(n int) *Set[T]
+func (s *Set[T]) Each(fn func(T))
+func (s *Set[T]) Equal(other *Set[T]) bool
+func (s *Set[T]) Filter(predicate func(T) bool) *Set[T]
+func (s *Set[T]) Find(predicate func(T) bool) (T, bool)
+func (s *Set[T]) Intersection(other *Set[T]) *Set[T]
+func (s *Set[T]) IsDisjoint(other *Set[T]) bool
+func (s *Set[T]) IsEmpty() bool
+func (s *Set[T]) IsSubset(other *Set[T]) bool
+func (s *Set[T]) IsSuperset(other *Set[T]) bool
+func (s *Set[T]) None(predicate func(T) bool) bool
+func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T])
+func (s *Set[T]) Reject(predicate func(T) bool) *Set[T]
+func (s *Set[T]) Remove(item T) bool
+func (s *Set[T]) Size() int
+func (s *Set[T]) String() string
+func (s *Set[T]) SymmetricDifference(other *Set[T]) *Set[T]
+func (s *Set[T]) Take(n int) *Set[T]
+func (s *Set[T]) ToSlice() []T
+func (s *Set[T]) Union(other *Set[T]) *Set[T]
+func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U]
+func SetReduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U
+```
+
+## Map
+
+A thread-safe generic wrapper around `sync.Map` with type-safe key-value operations
+
+### Example
+
+```go
+func ExampleMap() {
+	m := Map[string, int]{}
+
+	// Store values
+	m.Store("one", 1)
+	m.Store("two", 2)
+	m.Store("three", 3)
+
+	// Load values
+	if val, ok := m.Load("two"); ok {
+		fmt.Println(val) // 2
+	}
+
+	// Iterate over all entries
+	m.Range(func(k string, v int) bool {
+		fmt.Printf("%s: %d\n", k, v)
+		return true // continue iteration
+	})
+
+	// LoadOrStore
+	actual, loaded := m.LoadOrStore("four", 4)
+	fmt.Println(loaded) // false (newly stored)
+
+	// Delete
+	m.Delete("one")
+}
+```
+
+### Map Methods available:
+
+```go
+func (m *Map[K, V]) Delete(k K)
+func (m *Map[K, V]) Load(k K) (v V, ok bool)
+func (m *Map[K, V]) LoadAndDelete(k K) (v V, loaded bool)
+func (m *Map[K, V]) LoadOrStore(k K, v V) (actual V, loaded bool)
+func (m *Map[K, V]) Range(f func(k K, v V) bool)
+func (m *Map[K, V]) Store(k K, v V)
+func (m *Map[K, V]) Swap(k K, v V) (previous V, loaded bool)
 ```
