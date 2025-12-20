@@ -316,6 +316,30 @@ func TestSet_ToSlice(t *testing.T) {
 	}
 }
 
+func TestSet_ToSliceNoMutation(t *testing.T) {
+	// Test that modifying the returned slice doesn't affect the set
+	s := NewSet(1, 2, 3, 4, 5)
+	slice := s.ToSlice()
+
+	// Modify the returned slice
+	slice[0] = 999
+	slice[2] = 888
+
+	// Verify the set is unchanged
+	if s.Contains(999) {
+		t.Error("Set was corrupted: Contains(999) should be false")
+	}
+	if s.Contains(888) {
+		t.Error("Set was corrupted: Contains(888) should be false")
+	}
+	if !s.Contains(1) {
+		t.Error("Set was corrupted: Contains(1) should be true")
+	}
+	if !s.Contains(3) {
+		t.Error("Set was corrupted: Contains(3) should be true")
+	}
+}
+
 func TestSet_Clone(t *testing.T) {
 	tests := []struct {
 		name    string
