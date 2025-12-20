@@ -387,14 +387,16 @@ func (a Slice[T]) Shift() (T, Slice[T]) {
 	return a[0], a[1:]
 }
 
-// Reverse will reverse the array in reverse returning the array reference
-// again
+// Reverse returns a new slice with elements in reverse order.
+// The original slice is not modified.
 func (a Slice[T]) Reverse() Slice[T] {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+	result := make(Slice[T], len(a))
+	copy(result, a)
+	for i := len(result)/2 - 1; i >= 0; i-- {
+		opp := len(result) - 1 - i
+		result[i], result[opp] = result[opp], result[i]
 	}
-	return a
+	return result
 }
 
 // Shuffle will randomly shuffle an array elements order returning array

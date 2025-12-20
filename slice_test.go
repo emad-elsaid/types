@@ -599,6 +599,20 @@ func TestSliceReverse(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceReverseNoMutation(t *testing.T) {
+	// Test that Reverse doesn't mutate the original slice
+	original := Slice[int]{1, 2, 3, 4, 5}
+	originalCopy := Slice[int]{1, 2, 3, 4, 5}
+	result := original.Reverse()
+
+	// Verify the result is correct
+	expected := Slice[int]{5, 4, 3, 2, 1}
+	AssertSlicesEquals(t, expected, result)
+
+	// Verify original slice is unchanged
+	AssertSlicesEquals(t, originalCopy, original)
+}
+
 func TestSliceShuffle(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4}
 	a = a.Shuffle()
