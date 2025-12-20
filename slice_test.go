@@ -275,6 +275,32 @@ func TestSliceFill(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceFillBoundsChecking(t *testing.T) {
+	// Test filling beyond slice bounds
+	a := Slice[int]{1, 2, 3, 4, 5}
+	original := Slice[int]{1, 2, 3, 4, 5}
+
+	// Should only fill to end of slice
+	a.Fill(9, 3, 10)
+	expected := Slice[int]{1, 2, 3, 9, 9}
+	AssertSlicesEquals(t, expected, a)
+
+	// Test with negative start
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, -1, 3)
+	AssertSlicesEquals(t, original, a)
+
+	// Test with start beyond bounds
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, 10, 3)
+	AssertSlicesEquals(t, original, a)
+
+	// Test with negative length
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, 2, -5)
+	AssertSlicesEquals(t, original, a)
+}
+
 func TestSliceFillWith(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4, 5, 6}
 	result := Slice[int]{1, 2, 200, 300, 400, 6}
@@ -282,6 +308,32 @@ func TestSliceFillWith(t *testing.T) {
 		return i * 100
 	})
 	AssertSlicesEquals(t, result, a)
+}
+
+func TestSliceFillWithBoundsChecking(t *testing.T) {
+	// Test filling beyond slice bounds
+	a := Slice[int]{1, 2, 3, 4, 5}
+	original := Slice[int]{1, 2, 3, 4, 5}
+
+	// Should only fill to end of slice
+	a.FillWith(3, 10, func(i int) int { return i * 100 })
+	expected := Slice[int]{1, 2, 3, 300, 400}
+	AssertSlicesEquals(t, expected, a)
+
+	// Test with negative start
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(-1, 3, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
+
+	// Test with start beyond bounds
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(10, 3, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
+
+	// Test with negative length
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(2, -5, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
 }
 
 func TestSliceIndex(t *testing.T) {

@@ -176,6 +176,13 @@ func (a Slice[T]) Fetch(index int, defaultValue T) T {
 // "length" elements with the passed "element" parameter, will return same array
 // object
 func (a Slice[T]) Fill(element T, start int, length int) Slice[T] {
+	if start < 0 || start >= len(a) || length <= 0 {
+		return a
+	}
+	// Adjust length if it would exceed slice bounds
+	if start+length > len(a) {
+		length = len(a) - start
+	}
 	for length--; length >= 0; length-- {
 		a[start+length] = element
 	}
@@ -186,6 +193,13 @@ func (a Slice[T]) Fill(element T, start int, length int) Slice[T] {
 // passing every index to block and replacing the element inplace with the
 // return value
 func (a Slice[T]) FillWith(start int, length int, block func(int) T) Slice[T] {
+	if start < 0 || start >= len(a) || length <= 0 {
+		return a
+	}
+	// Adjust length if it would exceed slice bounds
+	if start+length > len(a) {
+		length = len(a) - start
+	}
 	for length--; length >= 0; length-- {
 		a[start+length] = block(start + length)
 	}
