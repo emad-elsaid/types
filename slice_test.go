@@ -597,3 +597,17 @@ func TestSlice_Partition(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkSlicePartition(b *testing.B) {
+	// Create a large slice to test performance
+	size := 1000
+	s := make(Slice[int], size)
+	for i := 0; i < size; i++ {
+		s[i] = i
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Partition(func(n int) bool { return n%2 == 0 })
+	}
+}

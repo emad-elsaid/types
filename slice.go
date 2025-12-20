@@ -392,9 +392,9 @@ func (s Slice[T]) Partition(predicate func(T) bool) (Slice[T], Slice[T]) {
 
 	for _, item := range s {
 		if predicate(item) {
-			trueSet = trueSet.Push(item)
+			trueSet = append(trueSet, item)
 		} else {
-			falseSet = falseSet.Push(item)
+			falseSet = append(falseSet, item)
 		}
 	}
 
