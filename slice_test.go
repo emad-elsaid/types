@@ -622,6 +622,28 @@ func TestSliceShuffle(t *testing.T) {
 	}
 }
 
+func TestSliceShuffleNoMutation(t *testing.T) {
+	// Test that Shuffle doesn't mutate the original slice
+	original := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	originalCopy := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	result := original.Shuffle()
+
+	// Verify original slice is unchanged
+	AssertSlicesEquals(t, originalCopy, original)
+
+	// Verify result has same length
+	if len(result) != len(original) {
+		t.Errorf("Expected result to have length %d, got %d", len(original), len(result))
+	}
+
+	// Verify result contains all elements (just in different order)
+	for _, v := range originalCopy {
+		if !result.Include(v) {
+			t.Errorf("Expected result to contain %d", v)
+		}
+	}
+}
+
 func TestSliceUnique(t *testing.T) {
 	a := Slice[int]{1, 2, 1, 3, 1, 2, 3, 4}
 	a = a.Unique()

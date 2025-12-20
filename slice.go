@@ -399,14 +399,16 @@ func (a Slice[T]) Reverse() Slice[T] {
 	return result
 }
 
-// Shuffle will randomly shuffle an array elements order returning array
-// reference again
+// Shuffle returns a new slice with elements in random order.
+// The original slice is not modified.
 func (a Slice[T]) Shuffle() Slice[T] {
-	for i := len(a) - 1; i > 0; i-- {
+	result := make(Slice[T], len(a))
+	copy(result, a)
+	for i := len(result) - 1; i > 0; i-- {
 		j := rand.Intn(i + 1)
-		a[i], a[j] = a[j], a[i]
+		result[i], result[j] = result[j], result[i]
 	}
-	return a
+	return result
 }
 
 // Unique returns a unique list of elements in the slice. order or the result is
