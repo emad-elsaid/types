@@ -1,4 +1,4 @@
-package types
+package set
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestNewSet(t *testing.T) {
+func TestNew(t *testing.T) {
 	tests := []struct {
 		name  string
 		slice []int
@@ -37,7 +37,7 @@ func TestNewSet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.slice...)
+			set := New(tt.slice...)
 			got := set.ToSlice()
 			sort.Ints(got)
 			sort.Ints(tt.want)
@@ -82,7 +82,7 @@ func TestSet_Add(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Add(tt.add)
 
 			if got != tt.want {
@@ -128,7 +128,7 @@ func TestSet_Remove(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Remove(tt.remove)
 
 			if got != tt.want {
@@ -170,7 +170,7 @@ func TestSet_Contains(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Contains(tt.check)
 
 			if got != tt.want {
@@ -210,7 +210,7 @@ func TestSet_Size(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Size()
 
 			if got != tt.want {
@@ -240,7 +240,7 @@ func TestSet_IsEmpty(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.IsEmpty()
 
 			if got != tt.want {
@@ -267,7 +267,7 @@ func TestSet_Clear(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			set.Clear()
 
 			if !set.IsEmpty() {
@@ -305,7 +305,7 @@ func TestSet_ToSlice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.ToSlice()
 			sort.Ints(got)
 
@@ -318,7 +318,7 @@ func TestSet_ToSlice(t *testing.T) {
 
 func TestSet_ToSliceNoMutation(t *testing.T) {
 	// Test that modifying the returned slice doesn't affect the set
-	s := NewSet(1, 2, 3, 4, 5)
+	s := New(1, 2, 3, 4, 5)
 	slice := s.ToSlice()
 
 	// Modify the returned slice
@@ -357,7 +357,7 @@ func TestSet_Clone(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			original := NewSet(tt.initial...)
+			original := New(tt.initial...)
 			clone := original.Clone()
 
 			if !original.Equal(clone) {
@@ -414,8 +414,8 @@ func TestSet_Union(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			result := s1.Union(s2)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -468,8 +468,8 @@ func TestSet_Intersection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			result := s1.Intersection(s2)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -528,8 +528,8 @@ func TestSet_Difference(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			result := s1.Difference(s2)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -582,8 +582,8 @@ func TestSet_SymmetricDifference(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			result := s1.SymmetricDifference(s2)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -642,8 +642,8 @@ func TestSet_IsSubset(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			got := s1.IsSubset(s2)
 
 			if got != tt.want {
@@ -700,8 +700,8 @@ func TestSet_IsSuperset(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			got := s1.IsSuperset(s2)
 
 			if got != tt.want {
@@ -752,8 +752,8 @@ func TestSet_IsDisjoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			got := s1.IsDisjoint(s2)
 
 			if got != tt.want {
@@ -810,8 +810,8 @@ func TestSet_Equal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s1 := NewSet(tt.set1...)
-			s2 := NewSet(tt.set2...)
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 			got := s1.Equal(s2)
 
 			if got != tt.want {
@@ -846,7 +846,7 @@ func TestSet_Each(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			visited := make(map[int]bool)
 
 			set.Each(func(item int) {
@@ -862,7 +862,7 @@ func TestSet_Each(t *testing.T) {
 
 func TestSet_EachOrderPreserved(t *testing.T) {
 	// Test that Each iterates in insertion order
-	set := NewSet(5, 2, 8, 1, 9, 3)
+	set := New(5, 2, 8, 1, 9, 3)
 
 	var result []int
 	set.Each(func(item int) {
@@ -876,7 +876,7 @@ func TestSet_EachOrderPreserved(t *testing.T) {
 	}
 }
 
-func TestSetMap(t *testing.T) {
+func TestMap(t *testing.T) {
 	tests := []struct {
 		name    string
 		initial []int
@@ -899,31 +899,15 @@ func TestSetMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
+			result := Map(set, tt.mapFn)
+			got := result.ToSlice()
+			sort.Strings(got)
+			want := tt.want
+			sort.Strings(want)
 
-			if tt.name == "square numbers" {
-				// Special case for int to int mapping
-				mapFn := func(n int) int { return n * n }
-				result := SetMap(set, mapFn)
-				got := result.ToSlice()
-				sort.Ints(got)
-				want := tt.want
-				sort.Strings(want)
-
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("Map() = %v, want %v", got, want)
-				}
-			} else {
-				// For string mapping tests
-				result := SetMap(set, tt.mapFn)
-				got := result.ToSlice()
-				sort.Strings(got)
-				want := tt.want
-				sort.Strings(want)
-
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("Map() = %v, want %v", got, want)
-				}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("Map() = %v, want %v", got, want)
 			}
 		})
 	}
@@ -970,7 +954,7 @@ func TestSet_Filter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			result := set.Filter(tt.predicate)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -1023,7 +1007,7 @@ func TestSet_Reject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			result := set.Reject(tt.predicate)
 			got := result.ToSlice()
 			sort.Ints(got)
@@ -1075,7 +1059,7 @@ func TestSet_Find(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			gotValue, gotFound := set.Find(tt.predicate)
 
 			if gotFound != tt.wantFound {
@@ -1137,7 +1121,7 @@ func TestSet_All(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.All(tt.predicate)
 
 			if got != tt.want {
@@ -1188,7 +1172,7 @@ func TestSet_Any(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Any(tt.predicate)
 
 			if got != tt.want {
@@ -1239,7 +1223,7 @@ func TestSet_None(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.None(tt.predicate)
 
 			if got != tt.want {
@@ -1290,7 +1274,7 @@ func TestSet_Count(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.Count(tt.predicate)
 
 			if got != tt.want {
@@ -1300,7 +1284,7 @@ func TestSet_Count(t *testing.T) {
 	}
 }
 
-func TestSetReduce(t *testing.T) {
+func TestReduce(t *testing.T) {
 	tests := []struct {
 		name        string
 		initial     []int
@@ -1352,8 +1336,8 @@ func TestSetReduce(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
-			got := SetReduce(set, tt.initial_val, tt.reduceFn)
+			set := New(tt.initial...)
+			got := Reduce(set, tt.initial_val, tt.reduceFn)
 
 			if got != tt.want {
 				t.Errorf("Reduce() = %v, want %v", got, tt.want)
@@ -1409,7 +1393,7 @@ func TestSet_Partition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			gotTrue, gotFalse := set.Partition(tt.predicate)
 
 			gotTrueSlice := gotTrue.ToSlice()
@@ -1474,7 +1458,7 @@ func TestSet_Take(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			result := set.Take(tt.n)
 
 			if result.Size() != tt.wantSize {
@@ -1538,7 +1522,7 @@ func TestSet_Drop(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			result := set.Drop(tt.n)
 
 			if result.Size() != tt.wantSize {
@@ -1575,7 +1559,7 @@ func TestSet_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			set := NewSet(tt.initial...)
+			set := New(tt.initial...)
 			got := set.String()
 
 			if got != tt.want {
@@ -1589,7 +1573,7 @@ func TestSet_String(t *testing.T) {
 func TestSet_Integration(t *testing.T) {
 	t.Run("chaining operations", func(t *testing.T) {
 		// Create a set, add elements, perform operations
-		set := NewSet[int]()
+		set := New[int]()
 		set.Add(1)
 		set.Add(2)
 		set.Add(3)
@@ -1603,7 +1587,7 @@ func TestSet_Integration(t *testing.T) {
 		}
 
 		// Union with another set
-		other := NewSet(6, 7, 8)
+		other := New(6, 7, 8)
 		combined := set.Union(other)
 		if combined.Size() != 8 {
 			t.Errorf("Expected 8 elements after union, got %d", combined.Size())
@@ -1617,7 +1601,7 @@ func TestSet_Integration(t *testing.T) {
 	})
 
 	t.Run("type safety with strings", func(t *testing.T) {
-		stringSet := NewSet("apple", "banana", "cherry")
+		stringSet := New("apple", "banana", "cherry")
 
 		// Test basic operations
 		stringSet.Add("date")

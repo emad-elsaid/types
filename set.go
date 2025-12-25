@@ -1,4 +1,5 @@
-package types
+// Package set provides an order-preserving generic set data structure.
+package set
 
 import (
 	"fmt"
@@ -8,14 +9,15 @@ import (
 
 // Set represents a generic set data structure that stores unique elements of type T.
 // T must be comparable to be used as map keys.
+// Unlike traditional sets, this implementation preserves insertion order.
 type Set[T comparable] struct {
 	order []T
 	items map[T]struct{}
 }
 
-// NewSet creates and returns a new Set initialized with elements from the given slice.
+// New creates and returns a new Set initialized with elements from the given slice.
 // Duplicate elements in the slice will be automatically deduplicated.
-func NewSet[T comparable](slice ...T) *Set[T] {
+func New[T comparable](slice ...T) *Set[T] {
 	s := Set[T]{
 		order: make([]T, 0, len(slice)),
 		items: make(map[T]struct{}, len(slice)),
@@ -88,7 +90,7 @@ func (s *Set[T]) ToSlice() []T {
 
 // Clone creates and returns a shallow copy of the set.
 func (s *Set[T]) Clone() *Set[T] {
-	return NewSet(s.order...)
+	return New(s.order...)
 }
 
 // Union returns a new set containing all elements that are in either this set or the other set.
@@ -104,7 +106,7 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 // Intersection returns a new set containing only elements that are in both this
 // set and the other set in the order they were added to the first set.
 func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
-	result := NewSet[T]()
+	result := New[T]()
 	for _, item := range s.order {
 		if other.Contains(item) {
 			result.Add(item)
@@ -116,7 +118,7 @@ func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 // Difference returns a new set containing elements that are in this set but not
 // in the other set in the order they were added to the first set.
 func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
-	result := NewSet[T]()
+	result := New[T]()
 	for _, item := range s.order {
 		if !other.Contains(item) {
 			result.Add(item)
@@ -162,10 +164,10 @@ func (s *Set[T]) Each(fn func(T)) {
 	}
 }
 
-// SetMap applies a transformation function to each element and returns a new set with the results.
+// Map applies a transformation function to each element and returns a new set with the results.
 // The transformation function must return a comparable type.
-func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
-	result := NewSet[U]()
+func Map[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
+	result := New[U]()
 	result.order = make([]U, 0, len(s.order))
 	result.items = make(map[U]struct{}, len(s.order))
 
@@ -178,7 +180,7 @@ func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
 
 // Filter returns a new set containing only elements that satisfy the predicate function.
 func (s *Set[T]) Filter(predicate func(T) bool) *Set[T] {
-	result := NewSet[T]()
+	result := New[T]()
 	result.order = make([]T, 0, len(s.order))
 	result.items = make(map[T]struct{}, len(s.order))
 
@@ -245,9 +247,9 @@ func (s *Set[T]) Count(predicate func(T) bool) int {
 	return count
 }
 
-// SetReduce applies a reduction function to all elements in the set, starting with an initial value.
+// Reduce applies a reduction function to all elements in the set, starting with an initial value.
 // The reduction function takes the accumulated value and the current element, returning the new accumulated value.
-func SetReduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
+func Reduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
 	result := initial
 	for _, item := range s.order {
 		result = fn(result, item)
@@ -259,8 +261,8 @@ func SetReduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
 // Returns two sets: the first contains elements that satisfy the predicate,
 // the second contains elements that do not satisfy the predicate.
 func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T]) {
-	trueSet := NewSet[T]()
-	falseSet := NewSet[T]()
+	trueSet := New[T]()
+	falseSet := New[T]()
 
 	for _, item := range s.order {
 		if predicate(item) {
@@ -276,10 +278,10 @@ func (s *Set[T]) Partition(predicate func(T) bool) (*Set[T], *Set[T]) {
 // Take returns a new set containing up to n elements from this set in the order they were added.
 func (s *Set[T]) Take(n int) *Set[T] {
 	if n <= 0 {
-		return NewSet[T]()
+		return New[T]()
 	}
 
-	result := NewSet[T]()
+	result := New[T]()
 	count := 0
 
 	for _, item := range s.order {
@@ -299,7 +301,7 @@ func (s *Set[T]) Drop(n int) *Set[T] {
 		return s.Clone()
 	}
 
-	result := NewSet[T]()
+	result := New[T]()
 	count := 0
 
 	for _, item := range s.order {
