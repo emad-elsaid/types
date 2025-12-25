@@ -186,6 +186,26 @@ func TestSliceDrop(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceDropBoundsChecking(t *testing.T) {
+	// Test dropping more elements than the slice has
+	a := Slice[int]{1, 2, 3}
+	result := a.Drop(10)
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+
+	// Test dropping exactly the length of the slice
+	result = a.Drop(3)
+	AssertSlicesEquals(t, expected, result)
+
+	// Test dropping negative count
+	result = a.Drop(-5)
+	AssertSlicesEquals(t, a, result)
+
+	// Test dropping zero
+	result = a.Drop(0)
+	AssertSlicesEquals(t, a, result)
+}
+
 func TestSliceEach(t *testing.T) {
 	a := Slice[int]{1, 2, 3}
 	sum := 0
@@ -255,6 +275,32 @@ func TestSliceFill(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceFillBoundsChecking(t *testing.T) {
+	// Test filling beyond slice bounds
+	a := Slice[int]{1, 2, 3, 4, 5}
+	original := Slice[int]{1, 2, 3, 4, 5}
+
+	// Should only fill to end of slice
+	a.Fill(9, 3, 10)
+	expected := Slice[int]{1, 2, 3, 9, 9}
+	AssertSlicesEquals(t, expected, a)
+
+	// Test with negative start
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, -1, 3)
+	AssertSlicesEquals(t, original, a)
+
+	// Test with start beyond bounds
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, 10, 3)
+	AssertSlicesEquals(t, original, a)
+
+	// Test with negative length
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.Fill(9, 2, -5)
+	AssertSlicesEquals(t, original, a)
+}
+
 func TestSliceFillWith(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4, 5, 6}
 	result := Slice[int]{1, 2, 200, 300, 400, 6}
@@ -262,6 +308,32 @@ func TestSliceFillWith(t *testing.T) {
 		return i * 100
 	})
 	AssertSlicesEquals(t, result, a)
+}
+
+func TestSliceFillWithBoundsChecking(t *testing.T) {
+	// Test filling beyond slice bounds
+	a := Slice[int]{1, 2, 3, 4, 5}
+	original := Slice[int]{1, 2, 3, 4, 5}
+
+	// Should only fill to end of slice
+	a.FillWith(3, 10, func(i int) int { return i * 100 })
+	expected := Slice[int]{1, 2, 3, 300, 400}
+	AssertSlicesEquals(t, expected, a)
+
+	// Test with negative start
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(-1, 3, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
+
+	// Test with start beyond bounds
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(10, 3, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
+
+	// Test with negative length
+	a = Slice[int]{1, 2, 3, 4, 5}
+	a.FillWith(2, -5, func(i int) int { return i * 100 })
+	AssertSlicesEquals(t, original, a)
 }
 
 func TestSliceIndex(t *testing.T) {
@@ -322,10 +394,52 @@ func TestSliceFirsts(t *testing.T) {
 	AssertSlicesEquals(t, result, a.Firsts(3))
 }
 
+func TestSliceFirstsBoundsChecking(t *testing.T) {
+	a := Slice[int]{1, 2, 3}
+
+	// Test getting more elements than the slice has
+	result := a.Firsts(10)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting exactly the length of the slice
+	result = a.Firsts(3)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting negative count
+	result = a.Firsts(-5)
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+
+	// Test getting zero
+	result = a.Firsts(0)
+	AssertSlicesEquals(t, expected, result)
+}
+
 func TestSliceLasts(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	result := Slice[int]{7, 8, 9}
 	AssertSlicesEquals(t, result, a.Lasts(3))
+}
+
+func TestSliceLastsBoundsChecking(t *testing.T) {
+	a := Slice[int]{1, 2, 3}
+
+	// Test getting more elements than the slice has
+	result := a.Lasts(10)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting exactly the length of the slice
+	result = a.Lasts(3)
+	AssertSlicesEquals(t, a, result)
+
+	// Test getting negative count
+	result = a.Lasts(-5)
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+
+	// Test getting zero
+	result = a.Lasts(0)
+	AssertSlicesEquals(t, expected, result)
 }
 
 func TestSliceInclude(t *testing.T) {
@@ -443,6 +557,18 @@ func TestSlicePop(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSlicePopEmpty(t *testing.T) {
+	// Test popping from an empty slice
+	a := Slice[int]{}
+	newSlice, element := a.Pop()
+
+	// Should return empty slice and zero value
+	if element != 0 {
+		t.Errorf("Expected zero value (0) for element, got %d", element)
+	}
+	AssertSlicesEquals(t, a, newSlice)
+}
+
 func TestSliceUnshift(t *testing.T) {
 	a := Slice[int]{1, 2, 3}
 	a = a.Unshift(4)
@@ -473,12 +599,48 @@ func TestSliceReverse(t *testing.T) {
 	AssertSlicesEquals(t, result, a)
 }
 
+func TestSliceReverseNoMutation(t *testing.T) {
+	// Test that Reverse doesn't mutate the original slice
+	original := Slice[int]{1, 2, 3, 4, 5}
+	originalCopy := Slice[int]{1, 2, 3, 4, 5}
+	result := original.Reverse()
+
+	// Verify the result is correct
+	expected := Slice[int]{5, 4, 3, 2, 1}
+	AssertSlicesEquals(t, expected, result)
+
+	// Verify original slice is unchanged
+	AssertSlicesEquals(t, originalCopy, original)
+}
+
 func TestSliceShuffle(t *testing.T) {
 	a := Slice[int]{1, 2, 3, 4}
 	a = a.Shuffle()
 	notResult := Slice[int]{1, 2, 3, 4}
 	if a.IsEq(notResult) {
 		t.Error("Expected arrays not to equal after shuffle but it was the same")
+	}
+}
+
+func TestSliceShuffleNoMutation(t *testing.T) {
+	// Test that Shuffle doesn't mutate the original slice
+	original := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	originalCopy := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	result := original.Shuffle()
+
+	// Verify original slice is unchanged
+	AssertSlicesEquals(t, originalCopy, original)
+
+	// Verify result has same length
+	if len(result) != len(original) {
+		t.Errorf("Expected result to have length %d, got %d", len(original), len(result))
+	}
+
+	// Verify result contains all elements (just in different order)
+	for _, v := range originalCopy {
+		if !result.Include(v) {
+			t.Errorf("Expected result to contain %d", v)
+		}
 	}
 }
 

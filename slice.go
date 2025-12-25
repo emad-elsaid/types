@@ -111,6 +111,12 @@ func (a Slice[T]) DeleteIf(block func(T) bool) Slice[T] {
 // Drop will return an array without the first "count" elements from the
 // beginning
 func (a Slice[T]) Drop(count int) Slice[T] {
+	if count <= 0 {
+		return a
+	}
+	if count >= len(a) {
+		return Slice[T]{}
+	}
 	return a[count:]
 }
 
@@ -170,6 +176,13 @@ func (a Slice[T]) Fetch(index int, defaultValue T) T {
 // "length" elements with the passed "element" parameter, will return same array
 // object
 func (a Slice[T]) Fill(element T, start int, length int) Slice[T] {
+	if start < 0 || start >= len(a) || length <= 0 {
+		return a
+	}
+	// Adjust length if it would exceed slice bounds
+	if start+length > len(a) {
+		length = len(a) - start
+	}
 	for length--; length >= 0; length-- {
 		a[start+length] = element
 	}
@@ -180,6 +193,13 @@ func (a Slice[T]) Fill(element T, start int, length int) Slice[T] {
 // passing every index to block and replacing the element inplace with the
 // return value
 func (a Slice[T]) FillWith(start int, length int, block func(int) T) Slice[T] {
+	if start < 0 || start >= len(a) || length <= 0 {
+		return a
+	}
+	// Adjust length if it would exceed slice bounds
+	if start+length > len(a) {
+		length = len(a) - start
+	}
 	for length--; length >= 0; length-- {
 		a[start+length] = block(start + length)
 	}
@@ -221,12 +241,24 @@ func (a Slice[T]) Last() *T {
 // Firsts will return an array holding the first "count" elements of the
 // array
 func (a Slice[T]) Firsts(count int) Slice[T] {
+	if count <= 0 {
+		return Slice[T]{}
+	}
+	if count >= len(a) {
+		return a
+	}
 	return a[0:count]
 }
 
 // Lasts will return an array holding the lasts "count" elements of the
 // array
 func (a Slice[T]) Lasts(count int) Slice[T] {
+	if count <= 0 {
+		return Slice[T]{}
+	}
+	if count >= len(a) {
+		return a
+	}
 	return a[len(a)-count:]
 }
 
@@ -332,8 +364,12 @@ func (a Slice[T]) Push(element T) Slice[T] {
 }
 
 // Pop removes the last element from the array, returning new array and
-// the element
+// the element. Returns the original slice and zero value if slice is empty.
 func (a Slice[T]) Pop() (Slice[T], T) {
+	if len(a) == 0 {
+		var zero T
+		return a, zero
+	}
 	return a[:len(a)-1], a[len(a)-1]
 }
 
@@ -351,24 +387,28 @@ func (a Slice[T]) Shift() (T, Slice[T]) {
 	return a[0], a[1:]
 }
 
-// Reverse will reverse the array in reverse returning the array reference
-// again
+// Reverse returns a new slice with elements in reverse order.
+// The original slice is not modified.
 func (a Slice[T]) Reverse() Slice[T] {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+	result := make(Slice[T], len(a))
+	copy(result, a)
+	for i := len(result)/2 - 1; i >= 0; i-- {
+		opp := len(result) - 1 - i
+		result[i], result[opp] = result[opp], result[i]
 	}
-	return a
+	return result
 }
 
-// Shuffle will randomly shuffle an array elements order returning array
-// reference again
+// Shuffle returns a new slice with elements in random order.
+// The original slice is not modified.
 func (a Slice[T]) Shuffle() Slice[T] {
-	for i := len(a) - 1; i > 0; i-- {
+	result := make(Slice[T], len(a))
+	copy(result, a)
+	for i := len(result) - 1; i > 0; i-- {
 		j := rand.Intn(i + 1)
-		a[i], a[j] = a[j], a[i]
+		result[i], result[j] = result[j], result[i]
 	}
-	return a
+	return result
 }
 
 // Unique returns a unique list of elements in the slice. order or the result is
