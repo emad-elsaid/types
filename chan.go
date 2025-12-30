@@ -58,3 +58,41 @@ func OrderedParallelizeChan[In, Out any](input <-chan In, workers int, process f
 
 	return output
 }
+
+// ChanProcessor takes a channel of inputs and a processor function that converts input to output, and returns an output channel with processed results.
+func ChanProcessor[In, Out any](input <-chan In, processor func(In) Out) <-chan Out {
+	if input == nil {
+		return nil
+	}
+
+	output := make(chan Out, cap(input))
+
+	go func() {
+		defer close(output)
+		for item := range input {
+			output <- processor(item)
+		}
+	}()
+
+	return output
+}
+
+// ChanFilter takes a channel of inputs and a filter function, returning an output channel with only the items that pass the filter.
+func ChanFilter[T any](input <-chan T, filter func(T) bool) <-chan T {
+	if input == nil {
+		return nil
+	}
+
+	output := make(chan T, cap(input))
+
+	go func() {
+		defer close(output)
+		for item := range input {
+			if filter(item) {
+				output <- item
+			}
+		}
+	}()
+
+	return output
+}
