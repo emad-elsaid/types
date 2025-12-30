@@ -13,7 +13,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 		Value string
 	}
 
-	makeProcessor := func(fn func(int) int) func(<-chan int) <-chan int {
+	makeMap := func(fn func(int) int) func(<-chan int) <-chan int {
 		return func(in <-chan int) <-chan int {
 			out := make(chan int)
 			go func() {
@@ -46,7 +46,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   3,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want:      []int{2, 4, 6, 8, 10},
 		},
 		{
@@ -62,7 +62,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   1,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want:      []int{2, 4, 6},
 		},
 		{
@@ -78,7 +78,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   10,
-			processor: makeProcessor(func(x int) int { return x * 3 }),
+			processor: makeMap(func(x int) int { return x * 3 }),
 			want:      []int{3, 6, 9, 12, 15, 18, 21, 24, 27, 30},
 		},
 		{
@@ -94,7 +94,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   0,
-			processor: makeProcessor(func(x int) int { return x + 1 }),
+			processor: makeMap(func(x int) int { return x + 1 }),
 			want:      []int{2, 3, 4},
 		},
 		{
@@ -110,7 +110,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   -5,
-			processor: makeProcessor(func(x int) int { return x + 1 }),
+			processor: makeMap(func(x int) int { return x + 1 }),
 			want:      []int{2, 3, 4},
 		},
 		{
@@ -120,7 +120,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   3,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want:      nil,
 		},
 		{
@@ -131,7 +131,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   3,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want:      []int{},
 		},
 		{
@@ -252,7 +252,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   20,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want: func() []int {
 				result := make([]int, 100)
 				for i := 0; i < 100; i++ {
@@ -272,7 +272,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   5,
-			processor: makeProcessor(func(x int) int { return x * 2 }),
+			processor: makeMap(func(x int) int { return x * 2 }),
 			want:      []int{84},
 		},
 		{
@@ -288,7 +288,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 				return ch
 			},
 			workers:   3,
-			processor: makeProcessor(func(x int) int { return x * 10 }),
+			processor: makeMap(func(x int) int { return x * 10 }),
 			want:      []int{10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
 		{
@@ -384,7 +384,7 @@ func TestOrderedParallelizeChan(t *testing.T) {
 	}
 }
 
-func TestChanProcessor(t *testing.T) {
+func TestChanMap(t *testing.T) {
 	type Item struct {
 		ID    int
 		Value string
@@ -393,7 +393,7 @@ func TestChanProcessor(t *testing.T) {
 	tests := []struct {
 		name       string
 		setupInput func() any
-		processor  any
+		mapFun     any
 		want       any
 		wantCap    int
 	}{
@@ -409,8 +409,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
-			want:      []int{2, 4, 6, 8, 10},
+			mapFun: func(x int) int { return x * 2 },
+			want:   []int{2, 4, 6, 8, 10},
 		},
 		{
 			name: "add one",
@@ -424,8 +424,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x + 1 },
-			want:      []int{11, 21, 31},
+			mapFun: func(x int) int { return x + 1 },
+			want:   []int{11, 21, 31},
 		},
 		{
 			name: "square numbers",
@@ -439,8 +439,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x * x },
-			want:      []int{4, 9, 16},
+			mapFun: func(x int) int { return x * x },
+			want:   []int{4, 9, 16},
 		},
 		{
 			name: "nil input",
@@ -448,8 +448,8 @@ func TestChanProcessor(t *testing.T) {
 				var ch chan int = nil
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
-			want:      nil,
+			mapFun: func(x int) int { return x * 2 },
+			want:   nil,
 		},
 		{
 			name: "empty input",
@@ -458,8 +458,8 @@ func TestChanProcessor(t *testing.T) {
 				close(ch)
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
-			want:      []int{},
+			mapFun: func(x int) int { return x * 2 },
+			want:   []int{},
 		},
 		{
 			name: "single item",
@@ -471,8 +471,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
-			want:      []int{84},
+			mapFun: func(x int) int { return x * 2 },
+			want:   []int{84},
 		},
 		{
 			name: "type conversion int to string",
@@ -486,8 +486,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) string { return string(rune('A' + x - 1)) },
-			want:      []string{"A", "B", "C", "D", "E"},
+			mapFun: func(x int) string { return string(rune('A' + x - 1)) },
+			want:   []string{"A", "B", "C", "D", "E"},
 		},
 		{
 			name: "string processing",
@@ -501,8 +501,8 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(s string) string { return s + "!" },
-			want:      []string{"hello!", "world!", "test!"},
+			mapFun: func(s string) string { return s + "!" },
+			want:   []string{"hello!", "world!", "test!"},
 		},
 		{
 			name: "struct type",
@@ -516,7 +516,7 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(item Item) Item {
+			mapFun: func(item Item) Item {
 				return Item{ID: item.ID * 10, Value: item.Value + "!"}
 			},
 			want: []Item{
@@ -537,9 +537,9 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
-			want:      []int{2, 4, 6, 8, 10},
-			wantCap:   10,
+			mapFun:  func(x int) int { return x * 2 },
+			want:    []int{2, 4, 6, 8, 10},
+			wantCap: 10,
 		},
 		{
 			name: "large dataset",
@@ -553,7 +553,7 @@ func TestChanProcessor(t *testing.T) {
 				}()
 				return ch
 			},
-			processor: func(x int) int { return x * 2 },
+			mapFun: func(x int) int { return x * 2 },
 			want: func() []int {
 				result := make([]int, 100)
 				for i := 0; i < 100; i++ {
@@ -570,9 +570,9 @@ func TestChanProcessor(t *testing.T) {
 
 			switch in := input.(type) {
 			case chan int:
-				switch proc := tc.processor.(type) {
+				switch proc := tc.mapFun.(type) {
 				case func(int) int:
-					output := ChanProcessor(in, proc)
+					output := ChanMap(in, proc)
 
 					if tc.want == nil {
 						require.Nil(t, output)
@@ -595,7 +595,7 @@ func TestChanProcessor(t *testing.T) {
 					require.Equal(t, want, result)
 
 				case func(int) string:
-					output := ChanProcessor(in, proc)
+					output := ChanMap(in, proc)
 
 					var result []string
 					for v := range output {
@@ -605,8 +605,8 @@ func TestChanProcessor(t *testing.T) {
 				}
 
 			case chan string:
-				proc := tc.processor.(func(string) string)
-				output := ChanProcessor(in, proc)
+				proc := tc.mapFun.(func(string) string)
+				output := ChanMap(in, proc)
 
 				var result []string
 				for v := range output {
@@ -615,8 +615,8 @@ func TestChanProcessor(t *testing.T) {
 				require.Equal(t, tc.want, result)
 
 			case chan Item:
-				proc := tc.processor.(func(Item) Item)
-				output := ChanProcessor(in, proc)
+				proc := tc.mapFun.(func(Item) Item)
+				output := ChanMap(in, proc)
 
 				var result []Item
 				for v := range output {

@@ -59,8 +59,8 @@ func OrderedParallelizeChan[In, Out any](input <-chan In, workers int, process f
 	return output
 }
 
-// ChanProcessor takes a channel of inputs and a processor function that converts input to output, and returns an output channel with processed results.
-func ChanProcessor[In, Out any](input <-chan In, processor func(In) Out) <-chan Out {
+// ChanMap takes a channel of inputs and a processor function that converts input to output, and returns an output channel with processed results.
+func ChanMap[In, Out any](input <-chan In, processor func(In) Out) <-chan Out {
 	if input == nil {
 		return nil
 	}
