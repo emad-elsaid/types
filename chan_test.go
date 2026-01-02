@@ -892,109 +892,64 @@ func TestChanFilter(t *testing.T) {
 }
 
 func TestChanEach(t *testing.T) {
-	type Item struct {
-		ID    int
-		Value string
+	tests := []struct {
+		name   string
+		input  []int
+		init   int
+		update func(acc *int, x int)
+		want   int
+	}{
+		{
+			name:   "sum",
+			input:  []int{1, 2, 3, 4, 5},
+			init:   0,
+			update: func(acc *int, x int) { *acc += x },
+			want:   15,
+		},
+		{
+			name:   "product",
+			input:  []int{2, 3, 4},
+			init:   1,
+			update: func(acc *int, x int) { *acc *= x },
+			want:   24,
+		},
+		{
+			name:  "max",
+			input: []int{3, 7, 2, 9, 1},
+			init:  0,
+			update: func(acc *int, x int) {
+				if x > *acc {
+					*acc = x
+				}
+			},
+			want: 9,
+		},
+		{
+			name:   "empty channel",
+			input:  []int{},
+			init:   0,
+			update: func(acc *int, x int) { *acc += x },
+			want:   0,
+		},
 	}
 
-	t.Run("integer operations", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			input  []int
-			init   int
-			update func(acc *int, x int)
-			want   int
-		}{
-			{
-				name:   "accumulate integers",
-				input:  []int{1, 2, 3, 4, 5},
-				init:   0,
-				update: func(acc *int, x int) { *acc += x },
-				want:   15,
-			},
-			{
-				name:   "single item",
-				input:  []int{42},
-				init:   0,
-				update: func(acc *int, x int) { *acc += x },
-				want:   42,
-			},
-			{
-				name:   "empty channel",
-				input:  []int{},
-				init:   0,
-				update: func(acc *int, x int) { *acc += x },
-				want:   0,
-			},
-			{
-				name: "large dataset",
-				input: func() []int {
-					s := make([]int, 100)
-					for i := range s {
-						s[i] = i + 1
-					}
-					return s
-				}(),
-				init:   0,
-				update: func(acc *int, x int) { *acc += x },
-				want:   5050,
-			},
-			{
-				name:   "multiply accumulator",
-				input:  []int{2, 3, 4},
-				init:   1,
-				update: func(acc *int, x int) { *acc *= x },
-				want:   24,
-			},
-			{
-				name:  "max value tracking",
-				input: []int{3, 7, 2, 9, 1, 8},
-				init:  0,
-				update: func(acc *int, x int) {
-					if x > *acc {
-						*acc = x
-					}
-				},
-				want: 9,
-			},
-			{
-				name:  "min value tracking",
-				input: []int{3, 7, 2, 9, 1, 8},
-				init:  int(^uint(0) >> 1),
-				update: func(acc *int, x int) {
-					if x < *acc {
-						*acc = x
-					}
-				},
-				want: 1,
-			},
-			{
-				name:   "buffered channel",
-				input:  []int{1, 2, 3, 4, 5},
-				init:   0,
-				update: func(acc *int, x int) { *acc += x },
-				want:   15,
-			},
-		}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ch := make(chan int)
+			go func() {
+				defer close(ch)
+				for _, v := range tc.input {
+					ch <- v
+				}
+			}()
 
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				ch := make(chan int, len(tc.input))
-				go func() {
-					defer close(ch)
-					for _, v := range tc.input {
-						ch <- v
-					}
-				}()
-
-				acc := tc.init
-				ChanEach(ch, func(x int) {
-					tc.update(&acc, x)
-				})
-				require.Equal(t, tc.want, acc)
+			acc := tc.init
+			ChanEach(ch, func(x int) {
+				tc.update(&acc, x)
 			})
-		}
-	})
+			require.Equal(t, tc.want, acc)
+		})
+	}
 
 	t.Run("nil input", func(t *testing.T) {
 		var ch chan int = nil
@@ -1005,55 +960,35 @@ func TestChanEach(t *testing.T) {
 		require.Equal(t, 0, sum)
 	})
 
-	t.Run("collect int slice", func(t *testing.T) {
+	t.Run("multiple functions", func(t *testing.T) {
 		ch := make(chan int)
 		go func() {
 			defer close(ch)
-			for _, v := range []int{10, 20, 30} {
+			for _, v := range []int{1, 2, 3, 4, 5} {
 				ch <- v
 			}
 		}()
 
-		var items []int
-		ChanEach(ch, func(x int) {
-			items = append(items, x)
-		})
-		require.Equal(t, []int{10, 20, 30}, items)
-	})
-
-	t.Run("count items", func(t *testing.T) {
-		ch := make(chan string)
-		go func() {
-			defer close(ch)
-			for _, v := range []string{"a", "b", "c"} {
-				ch <- v
-			}
-		}()
-
+		sum := 0
+		product := 1
 		count := 0
-		ChanEach(ch, func(_ string) {
-			count++
-		})
-		require.Equal(t, 3, count)
+		ChanEach(ch,
+			func(x int) { sum += x },
+			func(x int) { product *= x },
+			func(x int) { count++ },
+		)
+
+		require.Equal(t, 15, sum)
+		require.Equal(t, 120, product)
+		require.Equal(t, 5, count)
 	})
 
-	t.Run("collect strings", func(t *testing.T) {
-		ch := make(chan string)
-		go func() {
-			defer close(ch)
-			for _, v := range []string{"hello", " ", "world"} {
-				ch <- v
-			}
-		}()
+	t.Run("multiple functions with structs", func(t *testing.T) {
+		type Item struct {
+			ID    int
+			Value string
+		}
 
-		result := ""
-		ChanEach(ch, func(s string) {
-			result += s
-		})
-		require.Equal(t, "hello world", result)
-	})
-
-	t.Run("struct accumulation", func(t *testing.T) {
 		ch := make(chan Item)
 		go func() {
 			defer close(ch)
@@ -1066,44 +1001,14 @@ func TestChanEach(t *testing.T) {
 			}
 		}()
 
-		sum := 0
-		ChanEach(ch, func(item Item) {
-			sum += item.ID
-		})
-		require.Equal(t, 6, sum)
-	})
+		idSum := 0
+		values := ""
+		ChanEach(ch,
+			func(item Item) { idSum += item.ID },
+			func(item Item) { values += item.Value },
+		)
 
-	t.Run("struct collection", func(t *testing.T) {
-		ch := make(chan Item)
-		go func() {
-			defer close(ch)
-			for _, item := range []Item{
-				{ID: 1, Value: "test"},
-				{ID: 2, Value: "hello"},
-			} {
-				ch <- item
-			}
-		}()
-
-		var items []Item
-		ChanEach(ch, func(item Item) {
-			items = append(items, item)
-		})
-		require.Equal(t, []Item{
-			{ID: 1, Value: "test"},
-			{ID: 2, Value: "hello"},
-		}, items)
-	})
-
-	t.Run("side effect only - no accumulation", func(t *testing.T) {
-		ch := make(chan int)
-		go func() {
-			defer close(ch)
-			for i := 1; i <= 5; i++ {
-				ch <- i
-			}
-		}()
-
-		ChanEach(ch, func(_ int) {})
+		require.Equal(t, 6, idSum)
+		require.Equal(t, "abc", values)
 	})
 }
