@@ -96,3 +96,15 @@ func ChanFilter[T any](input <-chan T, filter func(T) bool) <-chan T {
 
 	return output
 }
+
+// ChanEach consumes all items from the input channel, and passes them to the provided function for processing.
+// It does not return any output channel.
+func ChanEach[T any](input <-chan T, processor func(T)) {
+	if input == nil {
+		return
+	}
+
+	for item := range input {
+		processor(item)
+	}
+}
