@@ -200,3 +200,47 @@ func (m *Map[K, V]) Range(f func(k K, v V) bool)
 func (m *Map[K, V]) Store(k K, v V)
 func (m *Map[K, V]) Swap(k K, v V) (previous V, loaded bool)
 ```
+
+## Chan
+
+Generic channel utility functions for functional-style channel operations
+
+### Example
+
+```go
+func ExampleChan() {
+	// Create input channel
+	input := make(chan int)
+	go func() {
+		defer close(input)
+		for i := 1; i <= 10; i++ {
+			input <- i
+		}
+	}()
+
+	// Map: transform each value
+	doubled := ChanMap(input, func(x int) int {
+		return x * 2
+	})
+
+	// Filter: keep only values > 10
+	filtered := ChanFilter(doubled, func(x int) bool {
+		return x > 10
+	})
+
+	// Each: consume and print
+	ChanEach(filtered, func(x int) {
+		fmt.Println(x)
+	})
+	// Output: 12 14 16 18 20
+}
+```
+
+### Chan Functions available:
+
+```go
+func OrderedParallelizeChan[In, Out any](input <-chan In, workers int, process func(<-chan In) <-chan Out) <-chan Out
+func ChanMap[In, Out any](input <-chan In, processor func(In) Out) <-chan Out
+func ChanFilter[T any](input <-chan T, filter func(T) bool) <-chan T
+func ChanEach[T any](input <-chan T, fns ...func(T))
+```
