@@ -1,0 +1,296 @@
+package types
+
+import (
+	"io"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+// Sudo creates a new Command with sudo privileges.
+// This is a convenience function equivalent to Cmd(cmd, args...).Sudo().
+//
+// Example:
+//
+//	result := types.Sudo("systemctl", "restart", "nginx").Stdout()
+func Sudo(cmd string, args ...string) *Command { return Cmd(cmd, args...).Sudo() }
+
+// Command represents a system command that can be chained and piped together.
+// Commands are executed lazily - they only run when an output method is called
+// (Stdout, Stderr, Error, Run, etc.).
+//
+// Command supports:
+//   - Command chaining via Pipe
+//   - Function transformations via PipeFn
+//   - Sudo execution
+//   - Interactive mode for terminal input/output
+//   - Input redirection
+//
+// Commands are idempotent - calling output methods multiple times executes the
+// command only once and returns cached results.
+type Command struct {
+	// previous is the preceding command in a pipeline
+	previous *Command
+	// cmd is the command name to execute
+	cmd string
+	// cmdFn is an optional function to execute instead of a system command
+	cmdFn func(stdin string) (stdout, stderr string, err error)
+	// args are the command arguments
+	args []string
+	// interactive indicates if the command should connect to the terminal
+	interactive bool
+	// input is the stdin source
+	input io.Reader
+	// useSudo indicates if the command should run with sudo
+	useSudo bool
+	// executed tracks if the command has been run
+	executed bool
+	// stdout holds the captured stdout
+	stdout string
+	// stderr holds the captured stderr
+	stderr string
+	// err holds any execution error
+	err error
+}
+
+// Cmd creates a new Command with the given command name and arguments.
+// The command will not execute until an output method is called.
+//
+// Example:
+//
+//	cmd := types.Cmd("echo", "hello", "world")
+//	output := cmd.Stdout() // "hello world\n"
+func Cmd(cmd string, args ...string) *Command {
+	return &Command{
+		cmd:  cmd,
+		args: args,
+	}
+}
+
+// CmdFn creates a new Command from a function that transforms stdin to stdout/stderr.
+// This allows inserting custom Go functions into command pipelines.
+//
+// The function receives stdin as a string and returns stdout, stderr, and an error.
+//
+// Example:
+//
+//	upperCase := types.CmdFn(func(stdin string) (string, string, error) {
+//		return strings.ToUpper(stdin), "", nil
+//	})
+//	result := types.Cmd("echo", "hello").PipeFn(upperCase.cmdFn).Stdout() // "HELLO\n"
+func CmdFn(fn func(stdin string) (stdout, stderr string, outErr error)) *Command {
+	return &Command{
+		cmdFn: fn,
+	}
+}
+
+// Pipe chains another command to receive this command's stdout as stdin.
+// This creates a pipeline similar to shell pipes (|).
+//
+// Errors from earlier commands in the pipeline prevent later commands from executing.
+//
+// Example:
+//
+//	result := types.Cmd("echo", "apple\nbanana\napricot").
+//		Pipe("grep", "a").
+//		Pipe("wc", "-l").
+//		Stdout() // "3\n"
+func (c *Command) Pipe(cmd string, args ...string) *Command {
+	next := Cmd(cmd, args...)
+	next.previous = c
+
+	return next
+}
+
+// PipeFn chains a function to receive this command's stdout as stdin.
+// This allows inserting custom transformations into command pipelines.
+//
+// Example:
+//
+//	result := types.Cmd("echo", "hello").
+//		PipeFn(func(stdin string) (string, string, error) {
+//			return strings.ToUpper(stdin), "", nil
+//		}).
+//		Stdout() // "HELLO\n"
+func (c *Command) PipeFn(fn func(stdin string) (stdout, stderr string, outErr error)) *Command {
+	next := CmdFn(fn)
+	next.previous = c
+
+	return next
+}
+
+// Interactive sets the command to run in interactive mode.
+// In interactive mode, stdin/stdout/stderr are connected directly to the terminal
+// instead of being captured. This is useful for commands that require user input
+// or display progress.
+//
+// Example:
+//
+//	err := types.Cmd("vim", "file.txt").Interactive().Error()
+func (c *Command) Interactive() *Command {
+	c.interactive = true
+	return c
+}
+
+// Input sets the stdin for the command from a string.
+// This is useful for providing input to commands that read from stdin.
+//
+// Example:
+//
+//	result := types.Cmd("grep", "hello").
+//		Input("hello world\ngoodbye\nhello again").
+//		Stdout() // "hello world\nhello again\n"
+func (c *Command) Input(input string) *Command {
+	c.input = strings.NewReader(input)
+	return c
+}
+
+// Sudo sets the command to run with sudo privileges.
+// If sudo authentication is required, the user will be prompted interactively.
+//
+// Example:
+//
+//	err := types.Cmd("systemctl", "restart", "nginx").Sudo().Error()
+func (c *Command) Sudo() *Command {
+	c.useSudo = true
+	return c
+}
+
+// Run executes the command and returns the Command for chaining.
+// This is useful when you want to ensure execution but don't need the output.
+//
+// Example:
+//
+//	types.Cmd("mkdir", "-p", "/tmp/test").Run()
+func (c *Command) Run() *Command { return c.execute() }
+
+// Stdout executes the command and returns its stdout.
+// Multiple calls return the cached result without re-executing.
+//
+// Example:
+//
+//	output := types.Cmd("echo", "hello").Stdout() // "hello\n"
+func (c *Command) Stdout() string { return c.execute().stdout }
+
+// StdoutErr executes the command and returns both stdout and any error.
+// This is useful when you need both the output and error information.
+//
+// Example:
+//
+//	output, err := types.Cmd("ls", "/nonexistent").StdoutErr()
+func (c *Command) StdoutErr() (string, error) { return c.Stdout(), c.Error() }
+
+// Stderr executes the command and returns its stderr.
+// Multiple calls return the cached result without re-executing.
+//
+// Example:
+//
+//	errMsg := types.Cmd("ls", "/nonexistent").Stderr()
+func (c *Command) Stderr() string { return c.execute().stderr }
+
+// StderrErr executes the command and returns both stderr and any error.
+//
+// Example:
+//
+//	errOutput, err := types.Cmd("ls", "/nonexistent").StderrErr()
+func (c *Command) StderrErr() (string, error) { return c.Stderr(), c.Error() }
+
+// Error executes the command and returns any error that occurred.
+// Returns nil if the command executed successfully.
+//
+// Example:
+//
+//	if err := types.Cmd("false").Error(); err != nil {
+//		// handle error
+//	}
+func (c *Command) Error() error { return c.execute().err }
+
+// StdoutStderr executes the command and returns both stdout and stderr concatenated.
+// This is useful when you need all output regardless of which stream it came from.
+//
+// Example:
+//
+//	allOutput := types.Cmd("ls", "/tmp", "/nonexistent").StdoutStderr()
+func (c *Command) StdoutStderr() string { return c.execute().stdout + c.execute().stderr }
+
+func (c *Command) execute() *Command {
+	if c.executed {
+		return c
+	}
+
+	c.executed = true
+
+	if c.cmdFn != nil {
+		// Execute previous command first or read from input
+		var stdin string
+		if c.previous != nil {
+			stdin, c.err = c.previous.StdoutErr()
+			if c.err != nil {
+				return c
+			}
+		} else if c.input != nil {
+			// Read from input reader
+			buf := new(strings.Builder)
+			_, c.err = io.Copy(buf, c.input)
+			if c.err != nil {
+				return c
+			}
+			stdin = buf.String()
+		}
+
+		c.stdout, c.stderr, c.err = c.cmdFn(stdin)
+		return c
+	}
+
+	// Build command with sudo if needed
+	var command *exec.Cmd
+	if c.useSudo {
+		// Check if sudo is already authenticated (non-interactive)
+		if err := Cmd("sudo", "-n", "true").Error(); err != nil {
+			// Not authenticated, request authentication interactively
+			if err := Cmd("sudo", "-v").Interactive().Error(); err != nil {
+				c.err = err
+				return c
+			}
+		}
+
+		command = exec.Command("sudo", append([]string{c.cmd}, c.args...)...)
+	} else {
+		command = exec.Command(c.cmd, c.args...)
+	}
+
+	// Set stdin
+	if c.input != nil {
+		command.Stdin = c.input
+	} else if c.interactive {
+		command.Stdin = os.Stdin
+	}
+
+	if c.previous != nil {
+		prevOut, err := c.previous.StdoutErr()
+		if err != nil {
+			c.err = err
+			return c
+		}
+
+		// TODO stream the stdout instead of reading it all at once then making a reader.
+		command.Stdin = strings.NewReader(prevOut)
+	}
+
+	// Set stdout/stderr based on mode
+	if c.interactive {
+		command.Stdout = os.Stdout
+		command.Stderr = os.Stderr
+		c.err = command.Run()
+	} else {
+		// Capture stdout and stderr separately
+		var stdoutBuf, stderrBuf strings.Builder
+		command.Stdout = &stdoutBuf
+		command.Stderr = &stderrBuf
+		c.err = command.Run()
+		c.stdout = stdoutBuf.String()
+		c.stderr = stderrBuf.String()
+	}
+
+	return c
+}

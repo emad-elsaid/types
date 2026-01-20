@@ -244,3 +244,84 @@ func ChanMap[In, Out any](input <-chan In, processor func(In) Out) <-chan Out
 func ChanFilter[T any](input <-chan T, filter func(T) bool) <-chan T
 func ChanEach[T any](input <-chan T, fns ...func(T))
 ```
+
+## Command
+
+A fluent interface for executing system commands with support for piping, chaining, and custom function transformations.
+
+### Features
+
+- **Command Chaining**: Chain commands together with `Pipe`
+- **Function Transformations**: Inject Go functions into pipelines with `PipeFn` and `CmdFn`
+- **Sudo Support**: Run commands with sudo privileges
+- **Interactive Mode**: Connect commands directly to terminal for user input
+- **Input Redirection**: Provide stdin from strings
+- **Lazy Execution**: Commands execute only when output is requested
+- **Idempotent**: Multiple calls to output methods return cached results
+
+### Example
+
+```go
+func ExampleCommand() {
+	// Simple command execution
+	output := Cmd("echo", "hello world").Stdout()
+	fmt.Println(output) // "hello world\n"
+
+	// Piping commands together
+	result := Cmd("echo", "apple\nbanana\napricot").
+		Pipe("grep", "a").
+		Pipe("wc", "-l").
+		Stdout()
+	fmt.Println(strings.TrimSpace(result)) // "3"
+
+	// Using custom functions in pipelines
+	upperResult := Cmd("echo", "hello").
+		PipeFn(func(stdin string) (string, string, error) {
+			return strings.ToUpper(stdin), "", nil
+		}).
+		Stdout()
+	fmt.Println(upperResult) // "HELLO\n"
+
+	// Input redirection
+	grepResult := Cmd("grep", "hello").
+		Input("hello world\ngoodbye\nhello again").
+		Stdout()
+	fmt.Println(grepResult) // "hello world\nhello again\n"
+
+	// Running with sudo (requires authentication)
+	err := Cmd("systemctl", "restart", "nginx").Sudo().Error()
+	if err != nil {
+		// handle error
+	}
+
+	// Interactive mode for commands requiring user input
+	err = Cmd("vim", "file.txt").Interactive().Error()
+}
+```
+
+### Command Functions and Methods
+
+```go
+// Creating commands
+func Cmd(cmd string, args ...string) *Command
+func CmdFn(fn func(stdin string) (stdout, stderr string, err error)) *Command
+func Sudo(cmd string, args ...string) *Command
+
+// Chaining and piping
+func (c *Command) Pipe(cmd string, args ...string) *Command
+func (c *Command) PipeFn(fn func(stdin string) (stdout, stderr string, err error)) *Command
+
+// Configuration
+func (c *Command) Interactive() *Command
+func (c *Command) Input(input string) *Command
+func (c *Command) Sudo() *Command
+
+// Execution and output
+func (c *Command) Run() *Command
+func (c *Command) Stdout() string
+func (c *Command) Stderr() string
+func (c *Command) Error() error
+func (c *Command) StdoutErr() (string, error)
+func (c *Command) StderrErr() (string, error)
+func (c *Command) StdoutStderr() string
+```
