@@ -1,8 +1,11 @@
 package types
 
 import (
+	"context"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -231,4 +234,224 @@ func TestCommand_ErrorPropagation(t *testing.T) {
 		err := cmd.Error()
 		require.Error(t, err)
 	})
+}
+
+func TestCommand_WithTimeout(t *testing.T) {
+	tests := []struct {
+		name        string
+		cmd         *Command
+		expectError bool
+	}{
+		{
+			name:        "command completes within timeout",
+			cmd:         Cmd("sleep", "0.1").WithTimeout(1 * time.Second),
+			expectError: false,
+		},
+		{
+			name:        "command exceeds timeout",
+			cmd:         Cmd("sleep", "10").WithTimeout(100 * time.Millisecond),
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cmd.Error()
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCommand_WithContext(t *testing.T) {
+	t.Run("cancelled context stops command", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Start a long-running command
+		cmd := Cmd("sleep", "10").WithContext(ctx)
+
+		// Cancel immediately
+		cancel()
+
+		err := cmd.Error()
+		require.Error(t, err)
+	})
+}
+
+func TestCommand_Dir(t *testing.T) {
+	tests := []struct {
+		name           string
+		dir            string
+		expectedOutput string
+	}{
+		{
+			name:           "run in /tmp",
+			dir:            "/tmp",
+			expectedOutput: "/tmp\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := Cmd("pwd").Dir(tt.dir)
+			stdout := cmd.Stdout()
+			require.Equal(t, tt.expectedOutput, stdout)
+			require.NoError(t, cmd.Error())
+		})
+	}
+}
+
+func TestCommand_Env(t *testing.T) {
+	t.Run("set single environment variable", func(t *testing.T) {
+		cmd := Cmd("sh", "-c", "echo $MY_VAR").Env("MY_VAR", "hello")
+		stdout := cmd.Stdout()
+		require.Equal(t, "hello\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+
+	t.Run("set multiple environment variables", func(t *testing.T) {
+		cmd := Cmd("sh", "-c", "echo $VAR1 $VAR2").
+			Env("VAR1", "hello").
+			Env("VAR2", "world")
+		stdout := cmd.Stdout()
+		require.Equal(t, "hello world\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+}
+
+func TestCommand_EnvMap(t *testing.T) {
+	t.Run("set environment variables from map", func(t *testing.T) {
+		envVars := map[string]string{
+			"VAR1": "hello",
+			"VAR2": "world",
+		}
+		cmd := Cmd("sh", "-c", "echo $VAR1 $VAR2").EnvMap(envVars)
+		stdout := cmd.Stdout()
+		require.Equal(t, "hello world\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+}
+
+func TestCommand_ClearEnv(t *testing.T) {
+	t.Run("cleared environment has only set variables", func(t *testing.T) {
+		// Set a variable in the test environment
+		os.Setenv("TEST_VAR", "should_not_see_this")
+		defer os.Unsetenv("TEST_VAR")
+
+		cmd := Cmd("sh", "-c", "echo ${TEST_VAR:-empty} $MY_VAR").
+			ClearEnv().
+			Env("MY_VAR", "hello")
+
+		stdout := cmd.Stdout()
+		// TEST_VAR should default to "empty", MY_VAR should be "hello"
+		require.Equal(t, "empty hello\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+}
+
+func TestCommand_ExitCode(t *testing.T) {
+	tests := []struct {
+		name         string
+		cmd          *Command
+		expectedCode int
+	}{
+		{
+			name:         "successful command has exit code 0",
+			cmd:          Cmd("true"),
+			expectedCode: 0,
+		},
+		{
+			name:         "failed command has non-zero exit code",
+			cmd:          Cmd("false"),
+			expectedCode: 1,
+		},
+		{
+			name:         "command with specific exit code",
+			cmd:          Cmd("sh", "-c", "exit 42"),
+			expectedCode: 42,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exitCode := tt.cmd.ExitCode()
+			require.Equal(t, tt.expectedCode, exitCode)
+		})
+	}
+}
+
+func TestCommand_InputReader(t *testing.T) {
+	t.Run("read from io.Reader", func(t *testing.T) {
+		reader := strings.NewReader("hello\nworld\nhello")
+		cmd := Cmd("grep", "hello").InputReader(reader)
+		stdout := cmd.Stdout()
+		require.Equal(t, "hello\nhello\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+}
+
+func TestCommand_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		cmd      *Command
+		expected string
+	}{
+		{
+			name:     "simple command",
+			cmd:      Cmd("echo", "hello"),
+			expected: "echo hello",
+		},
+		{
+			name:     "command with multiple args",
+			cmd:      Cmd("git", "commit", "-m", "message"),
+			expected: "git commit -m message",
+		},
+		{
+			name:     "sudo command",
+			cmd:      Cmd("systemctl", "restart", "nginx").Sudo(),
+			expected: "sudo systemctl restart nginx",
+		},
+		{
+			name:     "function command",
+			cmd:      CmdFn(func(s string) (string, string, error) { return s, "", nil }),
+			expected: "<function>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.cmd.String()
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestCommand_StdoutTrimmed(t *testing.T) {
+	tests := []struct {
+		name     string
+		cmd      *Command
+		expected string
+	}{
+		{
+			name:     "removes trailing newline",
+			cmd:      Cmd("echo", "hello"),
+			expected: "hello",
+		},
+		{
+			name:     "removes leading and trailing whitespace",
+			cmd:      Cmd("echo", "  hello  "),
+			expected: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.cmd.StdoutTrimmed()
+			require.Equal(t, tt.expected, result)
+			require.NoError(t, tt.cmd.Error())
+		})
+	}
 }

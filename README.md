@@ -255,7 +255,12 @@ A fluent interface for executing system commands with support for piping, chaini
 - **Function Transformations**: Inject Go functions into pipelines with `PipeFn` and `CmdFn`
 - **Sudo Support**: Run commands with sudo privileges
 - **Interactive Mode**: Connect commands directly to terminal for user input
-- **Input Redirection**: Provide stdin from strings
+- **Input Redirection**: Provide stdin from strings or io.Reader
+- **Context Support**: Cancel or timeout commands with context
+- **Working Directory**: Set the directory where commands execute
+- **Environment Variables**: Configure command environment
+- **Exit Code Access**: Get command exit codes
+- **Retry Logic**: Retry failed commands with optional backoff
 - **Lazy Execution**: Commands execute only when output is requested
 - **Idempotent**: Multiple calls to output methods return cached results
 
@@ -296,6 +301,31 @@ func ExampleCommand() {
 
 	// Interactive mode for commands requiring user input
 	err = Cmd("vim", "file.txt").Interactive().Error()
+	
+	// Timeout for long-running commands
+	output = Cmd("sleep", "10").WithTimeout(2*time.Second).Stdout()
+	// Returns with context deadline exceeded error
+	
+	// Set working directory
+	output = Cmd("ls").Dir("/tmp").Stdout()
+	
+	// Set environment variables
+	output = Cmd("printenv", "MY_VAR").
+		Env("MY_VAR", "hello").
+		Env("ANOTHER", "world").
+		Stdout()
+	
+	// Get exit code
+	cmd := Cmd("false").Run()
+	exitCode := cmd.ExitCode() // 1
+	
+	// Retry with backoff
+	output = Cmd("curl", "http://example.com").
+		RetryWithBackoff(3, 2*time.Second).
+		Stdout()
+	
+	// Get trimmed output (no trailing whitespace)
+	version := Cmd("git", "--version").StdoutTrimmed()
 }
 ```
 
@@ -314,14 +344,33 @@ func (c *Command) PipeFn(fn func(stdin string) (stdout, stderr string, err error
 // Configuration
 func (c *Command) Interactive() *Command
 func (c *Command) Input(input string) *Command
+func (c *Command) InputReader(r io.Reader) *Command
 func (c *Command) Sudo() *Command
+func (c *Command) Dir(path string) *Command
+func (c *Command) Env(key, value string) *Command
+func (c *Command) EnvMap(env map[string]string) *Command
+func (c *Command) ClearEnv() *Command
+
+// Context and timeout
+func (c *Command) WithContext(ctx context.Context) *Command
+func (c *Command) WithTimeout(duration time.Duration) *Command
+func (c *Command) WithDeadline(t time.Time) *Command
+
+// Retry logic
+func (c *Command) Retry(attempts int) *Command
+func (c *Command) RetryWithBackoff(attempts int, delay time.Duration) *Command
 
 // Execution and output
 func (c *Command) Run() *Command
 func (c *Command) Stdout() string
+func (c *Command) StdoutTrimmed() string
 func (c *Command) Stderr() string
 func (c *Command) Error() error
+func (c *Command) ExitCode() int
 func (c *Command) StdoutErr() (string, error)
 func (c *Command) StderrErr() (string, error)
 func (c *Command) StdoutStderr() string
+
+// Utility
+func (c *Command) String() string
 ```
