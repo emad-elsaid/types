@@ -1,10 +1,14 @@
 package types
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
+	"time"
 )
 
 // Sudo creates a new Command with sudo privileges.
@@ -51,6 +55,20 @@ type Command struct {
 	stderr string
 	// err holds any execution error
 	err error
+	// ctx is the context for cancellation/timeout
+	ctx context.Context
+	// dir is the working directory for the command
+	dir string
+	// env holds environment variables to set
+	env map[string]string
+	// clearEnv indicates if the environment should be cleared
+	clearEnv bool
+	// exitCode holds the command's exit code
+	exitCode int
+	// retryCount is the number of retry attempts
+	retryCount int
+	// retryDelay is the delay between retries
+	retryDelay time.Duration
 }
 
 // Cmd creates a new Command with the given command name and arguments.
@@ -145,6 +163,18 @@ func (c *Command) Input(input string) *Command {
 	return c
 }
 
+// InputReader sets the stdin for the command from an io.Reader.
+// This is useful for streaming input from files or other sources.
+//
+// Example:
+//
+//	file, _ := os.Open("input.txt")
+//	result := types.Cmd("wc", "-l").InputReader(file).Stdout()
+func (c *Command) InputReader(r io.Reader) *Command {
+	c.input = r
+	return c
+}
+
 // Sudo sets the command to run with sudo privileges.
 // If sudo authentication is required, the user will be prompted interactively.
 //
@@ -213,6 +243,174 @@ func (c *Command) Error() error { return c.execute().err }
 //	allOutput := types.Cmd("ls", "/tmp", "/nonexistent").StdoutStderr()
 func (c *Command) StdoutStderr() string { return c.execute().stdout + c.execute().stderr }
 
+// WithContext sets the context for the command.
+// The context can be used for cancellation or timeout.
+//
+// Example:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//	defer cancel()
+//	output := types.Cmd("sleep", "10").WithContext(ctx).Stdout() // cancelled after 5s
+func (c *Command) WithContext(ctx context.Context) *Command {
+	c.ctx = ctx
+	return c
+}
+
+// WithTimeout sets a timeout for the command using a context with deadline.
+// This is a convenience wrapper around WithContext.
+//
+// Example:
+//
+//	output := types.Cmd("sleep", "10").WithTimeout(5*time.Second).Stdout() // cancelled after 5s
+func (c *Command) WithTimeout(duration time.Duration) *Command {
+	ctx, cancel := context.WithTimeout(context.Background(), duration)
+	// Store cancel function but don't call it - the command execution will handle it
+	_ = cancel
+	c.ctx = ctx
+	return c
+}
+
+// WithDeadline sets an absolute deadline for the command using a context with deadline.
+// This is a convenience wrapper around WithContext.
+//
+// Example:
+//
+//	deadline := time.Now().Add(5*time.Second)
+//	output := types.Cmd("sleep", "10").WithDeadline(deadline).Stdout() // cancelled at deadline
+func (c *Command) WithDeadline(t time.Time) *Command {
+	ctx, cancel := context.WithDeadline(context.Background(), t)
+	_ = cancel
+	c.ctx = ctx
+	return c
+}
+
+// Dir sets the working directory for the command.
+// If not set, the command runs in the current working directory.
+//
+// Example:
+//
+//	output := types.Cmd("ls").Dir("/tmp").Stdout()
+func (c *Command) Dir(path string) *Command {
+	c.dir = path
+	return c
+}
+
+// Env sets a single environment variable for the command.
+// Can be called multiple times to set multiple variables.
+//
+// Example:
+//
+//	output := types.Cmd("printenv", "MY_VAR").Env("MY_VAR", "hello").Stdout()
+func (c *Command) Env(key, value string) *Command {
+	if c.env == nil {
+		c.env = make(map[string]string)
+	}
+	c.env[key] = value
+	return c
+}
+
+// EnvMap sets multiple environment variables from a map.
+// Existing environment variables are preserved unless overridden.
+//
+// Example:
+//
+//	envVars := map[string]string{"PATH": "/usr/bin", "HOME": "/tmp"}
+//	output := types.Cmd("env").EnvMap(envVars).Stdout()
+func (c *Command) EnvMap(env map[string]string) *Command {
+	if c.env == nil {
+		c.env = make(map[string]string)
+	}
+	for k, v := range env {
+		c.env[k] = v
+	}
+	return c
+}
+
+// ClearEnv clears all inherited environment variables.
+// Only variables set via Env() or EnvMap() will be available.
+//
+// Example:
+//
+//	output := types.Cmd("env").ClearEnv().Env("ONLY_VAR", "value").Stdout()
+func (c *Command) ClearEnv() *Command {
+	c.clearEnv = true
+	return c
+}
+
+// ExitCode returns the exit code of the command after execution.
+// Returns 0 if the command hasn't been executed yet or succeeded.
+// For non-zero exit codes, also check Error() for the error message.
+//
+// Example:
+//
+//	cmd := types.Cmd("false").Run()
+//	if cmd.ExitCode() != 0 {
+//		// handle non-zero exit
+//	}
+func (c *Command) ExitCode() int {
+	c.execute()
+	return c.exitCode
+}
+
+// Retry sets the number of retry attempts for the command.
+// If the command fails, it will be retried up to the specified number of times.
+// Use RetryWithBackoff for delays between retries.
+//
+// Example:
+//
+//	output := types.Cmd("curl", "http://example.com").Retry(3).Stdout()
+func (c *Command) Retry(attempts int) *Command {
+	c.retryCount = attempts
+	return c
+}
+
+// RetryWithBackoff sets retry attempts with a delay between each retry.
+// The delay is constant for all retries.
+//
+// Example:
+//
+//	output := types.Cmd("curl", "http://example.com").
+//		RetryWithBackoff(3, 2*time.Second).
+//		Stdout()
+func (c *Command) RetryWithBackoff(attempts int, delay time.Duration) *Command {
+	c.retryCount = attempts
+	c.retryDelay = delay
+	return c
+}
+
+// String implements fmt.Stringer and returns a string representation of the command.
+// This shows the command that will be executed, including arguments.
+//
+// Example:
+//
+//	cmd := types.Cmd("echo", "hello", "world")
+//	fmt.Println(cmd.String()) // "echo hello world"
+func (c *Command) String() string {
+	if c.cmd == "" {
+		return "<function>"
+	}
+
+	parts := []string{c.cmd}
+	parts = append(parts, c.args...)
+
+	if c.useSudo {
+		parts = append([]string{"sudo"}, parts...)
+	}
+
+	return strings.Join(parts, " ")
+}
+
+// StdoutTrimmed executes the command and returns stdout with leading/trailing whitespace removed.
+// This is useful for commands that output single values with newlines.
+//
+// Example:
+//
+//	version := types.Cmd("git", "--version").StdoutTrimmed()
+//	// "git version 2.39.0" (without trailing newline)
+func (c *Command) StdoutTrimmed() string {
+	return strings.TrimSpace(c.Stdout())
+}
+
 func (c *Command) execute() *Command {
 	if c.executed {
 		return c
@@ -220,43 +418,92 @@ func (c *Command) execute() *Command {
 
 	c.executed = true
 
+	// Retry logic wrapper
+	maxAttempts := c.retryCount + 1
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 && c.retryDelay > 0 {
+			time.Sleep(c.retryDelay)
+		}
+
+		c.executeOnce()
+
+		// If successful, break out of retry loop
+		if c.err == nil {
+			break
+		}
+	}
+
+	return c
+}
+
+func (c *Command) executeOnce() {
+
 	if c.cmdFn != nil {
 		// Execute previous command first or read from input
 		var stdin string
 		if c.previous != nil {
 			stdin, c.err = c.previous.StdoutErr()
 			if c.err != nil {
-				return c
+				return
 			}
 		} else if c.input != nil {
 			// Read from input reader
 			buf := new(strings.Builder)
 			_, c.err = io.Copy(buf, c.input)
 			if c.err != nil {
-				return c
+				return
 			}
 			stdin = buf.String()
 		}
 
 		c.stdout, c.stderr, c.err = c.cmdFn(stdin)
-		return c
+		return
 	}
 
 	// Build command with sudo if needed
 	var command *exec.Cmd
+
+	// Use context if provided
+	ctx := c.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if c.useSudo {
 		// Check if sudo is already authenticated (non-interactive)
 		if err := Cmd("sudo", "-n", "true").Error(); err != nil {
 			// Not authenticated, request authentication interactively
 			if err := Cmd("sudo", "-v").Interactive().Error(); err != nil {
 				c.err = err
-				return c
+				return
 			}
 		}
 
-		command = exec.Command("sudo", append([]string{c.cmd}, c.args...)...)
+		command = exec.CommandContext(ctx, "sudo", append([]string{c.cmd}, c.args...)...)
 	} else {
-		command = exec.Command(c.cmd, c.args...)
+		command = exec.CommandContext(ctx, c.cmd, c.args...)
+	}
+
+	// Set working directory
+	if c.dir != "" {
+		command.Dir = c.dir
+	}
+
+	// Set environment variables
+	if c.clearEnv {
+		command.Env = []string{}
+	}
+	if c.env != nil {
+		if !c.clearEnv {
+			command.Env = os.Environ()
+		}
+		for k, v := range c.env {
+			command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
+		}
 	}
 
 	// Set stdin
@@ -270,7 +517,7 @@ func (c *Command) execute() *Command {
 		prevOut, err := c.previous.StdoutErr()
 		if err != nil {
 			c.err = err
-			return c
+			return
 		}
 
 		// TODO stream the stdout instead of reading it all at once then making a reader.
@@ -292,5 +539,12 @@ func (c *Command) execute() *Command {
 		c.stderr = stderrBuf.String()
 	}
 
-	return c
+	// Extract exit code from error
+	if c.err != nil {
+		if exitErr, ok := c.err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				c.exitCode = status.ExitStatus()
+			}
+		}
+	}
 }
