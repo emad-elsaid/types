@@ -787,3 +787,74 @@ func BenchmarkSlicePartition(b *testing.B) {
 		s.Partition(func(n int) bool { return n%2 == 0 })
 	}
 }
+
+func TestSliceDeleteAtBoundsCheck(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		index    int
+		expected Slice[int]
+	}{
+		{
+			name:     "negative index",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    -1,
+			expected: Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "index equals length",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    4,
+			expected: Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "index greater than length",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    10,
+			expected: Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "empty slice with index 0",
+			slice:    Slice[int]{},
+			index:    0,
+			expected: Slice[int]{},
+		},
+		{
+			name:     "valid index at start",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    0,
+			expected: Slice[int]{2, 3, 4},
+		},
+		{
+			name:     "valid index at end",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    3,
+			expected: Slice[int]{1, 2, 3},
+		},
+		{
+			name:     "valid index in middle",
+			slice:    Slice[int]{1, 2, 3, 4},
+			index:    1,
+			expected: Slice[int]{1, 3, 4},
+		},
+		{
+			name:     "single element with valid index",
+			slice:    Slice[int]{42},
+			index:    0,
+			expected: Slice[int]{},
+		},
+		{
+			name:     "single element with out of bounds index",
+			slice:    Slice[int]{42},
+			index:    1,
+			expected: Slice[int]{42},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.DeleteAt(tt.index)
+			AssertSlicesEquals(t, tt.expected, result)
+		})
+	}
+}

@@ -90,7 +90,11 @@ func (a Slice[T]) Delete(element T) Slice[T] {
 }
 
 // DeleteAt will delete an element by index
+// If index is out of bounds (negative or >= length), returns original slice unchanged
 func (a Slice[T]) DeleteAt(index int) Slice[T] {
+	if index < 0 || index >= len(a) {
+		return a
+	}
 	result := make(Slice[T], 0, len(a)-1)
 	result = append(result, a[:index]...)
 	result = append(result, a[index+1:]...)
