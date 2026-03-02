@@ -63,3 +63,74 @@ func (m *Map[K, V]) Swap(k K, v V) (previous V, loaded bool) {
 
 	return
 }
+
+// Keys returns a slice containing all keys in the map.
+// The order of keys is not guaranteed.
+func (m *Map[K, V]) Keys() []K {
+	keys := []K{}
+	m.store.Range(func(k, v any) bool {
+		keys = append(keys, k.(K))
+		return true
+	})
+	return keys
+}
+
+// Values returns a slice containing all values in the map.
+// The order of values is not guaranteed.
+func (m *Map[K, V]) Values() []V {
+	values := []V{}
+	m.store.Range(func(k, v any) bool {
+		values = append(values, v.(V))
+		return true
+	})
+	return values
+}
+
+// Size returns the number of entries in the map.
+// Note: This operation requires iterating through all entries.
+func (m *Map[K, V]) Size() int {
+	size := 0
+	m.store.Range(func(k, v any) bool {
+		size++
+		return true
+	})
+	return size
+}
+
+// Clear removes all entries from the map.
+func (m *Map[K, V]) Clear() {
+	m.store.Range(func(k, v any) bool {
+		m.store.Delete(k)
+		return true
+	})
+}
+
+// Has checks if a key exists in the map.
+// This is a convenience method equivalent to checking the ok return value of Load.
+func (m *Map[K, V]) Has(k K) bool {
+	_, ok := m.store.Load(k)
+	return ok
+}
+
+// ForEach iterates over all entries in the map, calling the provided function
+// for each key-value pair. Unlike Range, this does not support early termination.
+func (m *Map[K, V]) ForEach(f func(k K, v V)) {
+	m.store.Range(func(k, v any) bool {
+		f(k.(K), v.(V))
+		return true
+	})
+}
+
+// Filter returns a new Map containing only the entries that satisfy the predicate.
+func (m *Map[K, V]) Filter(predicate func(k K, v V) bool) *Map[K, V] {
+	result := &Map[K, V]{}
+	m.store.Range(func(k, v any) bool {
+		key := k.(K)
+		value := v.(V)
+		if predicate(key, value) {
+			result.Store(key, value)
+		}
+		return true
+	})
+	return result
+}

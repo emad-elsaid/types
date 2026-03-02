@@ -89,4 +89,150 @@ func TestMap(t *testing.T) {
 			t.Errorf("Expected Value2 and not loaded, got: %s, %t", v, loaded)
 		}
 	})
+
+	t.Run("Keys", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		keys := m.Keys()
+		if len(keys) != 3 {
+			t.Errorf("Expected 3 keys, got %d", len(keys))
+		}
+
+		// Verify all expected keys are present
+		keyMap := make(map[string]bool)
+		for _, k := range keys {
+			keyMap[k] = true
+		}
+		if !keyMap["a"] || !keyMap["b"] || !keyMap["c"] {
+			t.Errorf("Missing expected keys, got: %v", keys)
+		}
+	})
+
+	t.Run("Values", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		values := m.Values()
+		if len(values) != 3 {
+			t.Errorf("Expected 3 values, got %d", len(values))
+		}
+
+		// Verify all expected values are present
+		valueMap := make(map[int]bool)
+		for _, v := range values {
+			valueMap[v] = true
+		}
+		if !valueMap[1] || !valueMap[2] || !valueMap[3] {
+			t.Errorf("Missing expected values, got: %v", values)
+		}
+	})
+
+	t.Run("Size", func(t *testing.T) {
+		m := Map[string, int]{}
+		if m.Size() != 0 {
+			t.Errorf("Expected size 0 for empty map, got %d", m.Size())
+		}
+
+		m.Store("a", 1)
+		if m.Size() != 1 {
+			t.Errorf("Expected size 1, got %d", m.Size())
+		}
+
+		m.Store("b", 2)
+		m.Store("c", 3)
+		if m.Size() != 3 {
+			t.Errorf("Expected size 3, got %d", m.Size())
+		}
+
+		m.Delete("a")
+		if m.Size() != 2 {
+			t.Errorf("Expected size 2 after delete, got %d", m.Size())
+		}
+	})
+
+	t.Run("Clear", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		m.Clear()
+
+		if m.Size() != 0 {
+			t.Errorf("Expected size 0 after Clear, got %d", m.Size())
+		}
+
+		if _, ok := m.Load("a"); ok {
+			t.Error("Key 'a' should not exist after Clear")
+		}
+	})
+
+	t.Run("Has", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+
+		if !m.Has("a") {
+			t.Error("Expected Has('a') to return true")
+		}
+
+		if m.Has("b") {
+			t.Error("Expected Has('b') to return false")
+		}
+
+		m.Delete("a")
+		if m.Has("a") {
+			t.Error("Expected Has('a') to return false after delete")
+		}
+	})
+
+	t.Run("ForEach", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		sum := 0
+		m.ForEach(func(k string, v int) {
+			sum += v
+		})
+
+		if sum != 6 {
+			t.Errorf("Expected sum 6, got %d", sum)
+		}
+	})
+
+	t.Run("Filter", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+		m.Store("d", 4)
+
+		// Filter for even values
+		filtered := m.Filter(func(k string, v int) bool {
+			return v%2 == 0
+		})
+
+		if filtered.Size() != 2 {
+			t.Errorf("Expected filtered size 2, got %d", filtered.Size())
+		}
+
+		if !filtered.Has("b") || !filtered.Has("d") {
+			t.Error("Expected filtered map to contain 'b' and 'd'")
+		}
+
+		if filtered.Has("a") || filtered.Has("c") {
+			t.Error("Expected filtered map not to contain 'a' or 'c'")
+		}
+
+		// Original map should be unchanged
+		if m.Size() != 4 {
+			t.Errorf("Expected original map size 4, got %d", m.Size())
+		}
+	})
 }
