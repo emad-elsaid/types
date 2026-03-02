@@ -174,10 +174,27 @@ func ExampleMap() {
 		fmt.Println(val) // 2
 	}
 
-	// Iterate over all entries
-	m.Range(func(k string, v int) bool {
+	// Check if key exists
+	if m.Has("one") {
+		fmt.Println("one exists")
+	}
+
+	// Get all keys and values
+	keys := m.Keys()     // []string{"one", "two", "three"}
+	values := m.Values() // []int{1, 2, 3}
+
+	// Get size
+	size := m.Size() // 3
+
+	// Filter entries
+	filtered := m.Filter(func(k string, v int) bool {
+		return v > 1 // Keep values greater than 1
+	})
+	// filtered contains: {"two": 2, "three": 3}
+
+	// Iterate without early termination
+	m.ForEach(func(k string, v int) {
 		fmt.Printf("%s: %d\n", k, v)
-		return true // continue iteration
 	})
 
 	// LoadOrStore
@@ -186,19 +203,36 @@ func ExampleMap() {
 
 	// Delete
 	m.Delete("one")
+
+	// Clear all entries
+	m.Clear()
 }
 ```
 
 ### Map Methods available:
 
 ```go
+// Basic operations
 func (m *Map[K, V]) Delete(k K)
 func (m *Map[K, V]) Load(k K) (v V, ok bool)
 func (m *Map[K, V]) LoadAndDelete(k K) (v V, loaded bool)
 func (m *Map[K, V]) LoadOrStore(k K, v V) (actual V, loaded bool)
-func (m *Map[K, V]) Range(f func(k K, v V) bool)
 func (m *Map[K, V]) Store(k K, v V)
 func (m *Map[K, V]) Swap(k K, v V) (previous V, loaded bool)
+
+// Iteration
+func (m *Map[K, V]) Range(f func(k K, v V) bool)
+func (m *Map[K, V]) ForEach(f func(k K, v V))
+
+// Utility methods
+func (m *Map[K, V]) Clear()
+func (m *Map[K, V]) Has(k K) bool
+func (m *Map[K, V]) Keys() []K
+func (m *Map[K, V]) Values() []V
+func (m *Map[K, V]) Size() int
+
+// Functional operations
+func (m *Map[K, V]) Filter(predicate func(k K, v V) bool) *Map[K, V]
 ```
 
 ## Chan
