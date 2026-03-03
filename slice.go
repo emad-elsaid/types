@@ -78,6 +78,24 @@ func (a Slice[T]) All(block func(T) bool) bool {
 	return true
 }
 
+// None returns true if no elements in the slice satisfy the predicate function.
+// Returns true for empty slices.
+func (a Slice[T]) None(predicate func(T) bool) bool {
+	return !a.Any(predicate)
+}
+
+// Find returns the first element that satisfies the predicate function and true.
+// If no element satisfies the predicate, it returns the zero value of T and false.
+func (a Slice[T]) Find(predicate func(T) bool) (T, bool) {
+	for _, item := range a {
+		if predicate(item) {
+			return item, true
+		}
+	}
+	var zero T
+	return zero, false
+}
+
 // Delete will remove all elements that are equal to the passed element
 func (a Slice[T]) Delete(element T) Slice[T] {
 	result := Slice[T]{}

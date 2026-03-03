@@ -52,6 +52,7 @@ func (a Slice[T]) EachIndex(block func(int))
 func (a Slice[T]) Fetch(index int, defaultValue T) T
 func (a Slice[T]) Fill(element T, start int, length int) Slice[T]
 func (a Slice[T]) FillWith(start int, length int, block func(int) T) Slice[T]
+func (a Slice[T]) Find(predicate func(T) bool) (T, bool)
 func (a Slice[T]) First() *T
 func (a Slice[T]) Firsts(count int) Slice[T]
 func (a Slice[T]) Include(element T) bool
@@ -67,6 +68,7 @@ func (a Slice[T]) Len() int
 func (a Slice[T]) Map(block func(T) T) Slice[T]
 func (a Slice[T]) Max(block func(T) int) T
 func (a Slice[T]) Min(block func(T) int) T
+func (a Slice[T]) None(predicate func(T) bool) bool
 func (a Slice[T]) Partition(predicate func(T) bool) (Slice[T], Slice[T])
 func (a Slice[T]) Pop() (Slice[T], T)
 func (a Slice[T]) Push(element T) Slice[T]
