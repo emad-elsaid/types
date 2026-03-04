@@ -142,6 +142,29 @@ func (a Slice[T]) Drop(count int) Slice[T] {
 	return a[count:]
 }
 
+// TakeWhile returns a new slice containing elements from the start of the slice
+// while the predicate returns true. Stops at the first element where predicate returns false.
+func (a Slice[T]) TakeWhile(predicate func(T) bool) Slice[T] {
+	for i, elem := range a {
+		if !predicate(elem) {
+			return a[:i]
+		}
+	}
+	return a
+}
+
+// DropWhile returns a new slice with elements dropped from the start while the
+// predicate returns true. Returns the remaining elements starting from the first
+// element where predicate returns false.
+func (a Slice[T]) DropWhile(predicate func(T) bool) Slice[T] {
+	for i, elem := range a {
+		if !predicate(elem) {
+			return a[i:]
+		}
+	}
+	return Slice[T]{}
+}
+
 // Each will execute "block" for each element in array
 func (a Slice[T]) Each(block func(T)) {
 	for _, o := range a {

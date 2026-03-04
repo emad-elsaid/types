@@ -47,6 +47,7 @@ func (a Slice[T]) Delete(element T) Slice[T]
 func (a Slice[T]) DeleteAt(index int) Slice[T]
 func (a Slice[T]) DeleteIf(block func(T) bool) Slice[T]
 func (a Slice[T]) Drop(count int) Slice[T]
+func (a Slice[T]) DropWhile(predicate func(T) bool) Slice[T]
 func (a Slice[T]) Each(block func(T))
 func (a Slice[T]) EachIndex(block func(int))
 func (a Slice[T]) Fetch(index int, defaultValue T) T
@@ -78,6 +79,7 @@ func (a Slice[T]) Select(block func(T) bool) Slice[T]
 func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T]
 func (a Slice[T]) Shift() (T, Slice[T])
 func (a Slice[T]) Shuffle() Slice[T]
+func (a Slice[T]) TakeWhile(predicate func(T) bool) Slice[T]
 func (a Slice[T]) Unique() Slice[T]
 func (a Slice[T]) Unshift(element T) Slice[T]
 func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U
