@@ -24,7 +24,7 @@ func Sudo(cmd string, args ...string) *Command { return Cmd(cmd, args...).Sudo()
 // (Stdout, Stderr, Error, Run, etc.).
 //
 // Command supports:
-//   - Command chaining via Pipe
+//   - Command chaining via Pipe with efficient streaming (no buffering of large outputs)
 //   - Function transformations via PipeFn
 //   - Sudo execution
 //   - Interactive mode for terminal input/output
@@ -32,6 +32,10 @@ func Sudo(cmd string, args ...string) *Command { return Cmd(cmd, args...).Sudo()
 //
 // Commands are idempotent - calling output methods multiple times executes the
 // command only once and returns cached results.
+//
+// Piped commands use streaming I/O, connecting stdout directly to stdin without
+// buffering the entire output in memory. This makes pipelines memory-efficient
+// even with large data.
 type Command struct {
 	// previous is the preceding command in a pipeline
 	previous *Command
@@ -104,6 +108,10 @@ func CmdFn(fn func(stdin string) (stdout, stderr string, outErr error)) *Command
 
 // Pipe chains another command to receive this command's stdout as stdin.
 // This creates a pipeline similar to shell pipes (|).
+//
+// Commands are connected via streaming pipes, allowing efficient processing
+// of large outputs without buffering everything in memory. The previous command's
+// stdout is directly connected to the next command's stdin.
 //
 // Errors from earlier commands in the pipeline prevent later commands from executing.
 //
@@ -440,6 +448,150 @@ func (c *Command) execute() *Command {
 	return c
 }
 
+// getStdoutPipe executes the command (if not already executed) and returns an io.Reader
+// that streams the stdout. This is used for efficient piping between commands.
+// For idempotency, if the command has already been executed, it returns a reader from
+// the cached stdout. Otherwise, it starts the command and sets up streaming.
+func (c *Command) getStdoutPipe() (io.Reader, error) {
+	// If already executed, return reader from cached output
+	if c.executed {
+		if c.err != nil {
+			return nil, c.err
+		}
+		return strings.NewReader(c.stdout), nil
+	}
+
+	// Mark as executed to prevent re-execution
+	c.executed = true
+
+	// Handle function commands - they need full input, so we execute normally
+	if c.cmdFn != nil {
+		c.executeOnce()
+		if c.err != nil {
+			return nil, c.err
+		}
+		return strings.NewReader(c.stdout), nil
+	}
+
+	// Handle piped input - if this command has a previous command,
+	// we need to stream from it too
+	if c.previous != nil {
+		// Get the pipe from the previous command
+		prevPipe, err := c.previous.getStdoutPipe()
+		if err != nil {
+			c.err = err
+			return nil, err
+		}
+		c.input = prevPipe
+	}
+
+	// Build the command
+	var command *exec.Cmd
+	ctx := c.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if c.useSudo {
+		// Check if sudo is already authenticated
+		if err := Cmd("sudo", "-n", "true").Error(); err != nil {
+			// Request authentication interactively
+			if err := Cmd("sudo", "-v").Interactive().Error(); err != nil {
+				c.err = err
+				return nil, err
+			}
+		}
+		command = exec.CommandContext(ctx, "sudo", append([]string{c.cmd}, c.args...)...)
+	} else {
+		command = exec.CommandContext(ctx, c.cmd, c.args...)
+	}
+
+	// Set working directory
+	if c.dir != "" {
+		command.Dir = c.dir
+	}
+
+	// Set environment variables
+	if c.clearEnv {
+		command.Env = []string{}
+	}
+	if c.env != nil {
+		if !c.clearEnv {
+			command.Env = os.Environ()
+		}
+		for k, v := range c.env {
+			command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+
+	// Set stdin
+	if c.input != nil {
+		command.Stdin = c.input
+	} else if c.interactive {
+		command.Stdin = os.Stdin
+	}
+
+	// Get stdout pipe
+	stdoutPipe, err := command.StdoutPipe()
+	if err != nil {
+		c.err = err
+		return nil, err
+	}
+
+	// Capture stderr separately
+	var stderrBuf strings.Builder
+	command.Stderr = &stderrBuf
+
+	// Start the command
+	if err := command.Start(); err != nil {
+		c.err = err
+		return nil, err
+	}
+
+	// Create a pipe to stream stdout while also capturing it for caching
+	pr, pw := io.Pipe()
+
+	// Start a goroutine to tee the output: write to both the pipe and our buffer
+	go func() {
+		var stdoutBuf strings.Builder
+		// Use TeeReader to read from stdoutPipe and write to both the buffer and the pipe
+		teeReader := io.TeeReader(stdoutPipe, &stdoutBuf)
+		
+		// Copy everything through
+		_, copyErr := io.Copy(pw, teeReader)
+		
+		// Wait for the command to finish
+		waitErr := command.Wait()
+		
+		// Store stderr
+		c.stderr = stderrBuf.String()
+		
+		// Store stdout from the buffer
+		c.stdout = stdoutBuf.String()
+		
+		// Extract exit code
+		if waitErr != nil {
+			c.err = waitErr
+			if exitErr, ok := waitErr.(*exec.ExitError); ok {
+				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+					c.exitCode = status.ExitStatus()
+				}
+			}
+		}
+		
+		// Close the pipe writer
+		if copyErr != nil {
+			pw.CloseWithError(copyErr)
+		} else if waitErr != nil {
+			pw.CloseWithError(waitErr)
+		} else {
+			pw.Close()
+		}
+	}()
+
+	return pr, nil
+}
+
 func (c *Command) executeOnce() {
 
 	if c.cmdFn != nil {
@@ -514,14 +666,13 @@ func (c *Command) executeOnce() {
 	}
 
 	if c.previous != nil {
-		prevOut, err := c.previous.StdoutErr()
+		// Stream stdout from previous command instead of reading all at once
+		stdoutPipe, err := c.previous.getStdoutPipe()
 		if err != nil {
 			c.err = err
 			return
 		}
-
-		// TODO stream the stdout instead of reading it all at once then making a reader.
-		command.Stdin = strings.NewReader(prevOut)
+		command.Stdin = stdoutPipe
 	}
 
 	// Set stdout/stderr based on mode
