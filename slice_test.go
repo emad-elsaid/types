@@ -241,12 +241,68 @@ func TestSliceIsEmpty(t *testing.T) {
 }
 
 func TestSliceIsEq(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	b := Slice[int]{1, 2, 3, 4}
+	t.Run("equal slices", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3, 4}
+		b := Slice[int]{1, 2, 3, 4}
 
-	if !a.IsEq(b) {
-		t.Error("Expected arrat a to equal b but found otherwise")
-	}
+		if !a.IsEq(b) {
+			t.Error("Expected array a to equal b but found otherwise")
+		}
+	})
+
+	t.Run("different lengths", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[int]{1, 2, 3, 4}
+
+		if a.IsEq(b) {
+			t.Error("Expected slices with different lengths to not be equal")
+		}
+	})
+
+	t.Run("same length different values", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3, 4}
+		b := Slice[int]{1, 2, 5, 4}
+
+		if a.IsEq(b) {
+			t.Error("Expected slices with different values to not be equal")
+		}
+	})
+
+	t.Run("both empty slices", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[int]{}
+
+		if !a.IsEq(b) {
+			t.Error("Expected empty slices to be equal")
+		}
+	})
+
+	t.Run("one empty one non-empty", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[int]{1, 2}
+
+		if a.IsEq(b) {
+			t.Error("Expected empty and non-empty slices to not be equal")
+		}
+	})
+
+	t.Run("string slices equality", func(t *testing.T) {
+		a := Slice[string]{"hello", "world"}
+		b := Slice[string]{"hello", "world"}
+
+		if !a.IsEq(b) {
+			t.Error("Expected string slices to be equal")
+		}
+	})
+
+	t.Run("string slices inequality", func(t *testing.T) {
+		a := Slice[string]{"hello", "world"}
+		b := Slice[string]{"hello", "universe"}
+
+		if a.IsEq(b) {
+			t.Error("Expected different string slices to not be equal")
+		}
+	})
 }
 
 func TestSliceFetch(t *testing.T) {
