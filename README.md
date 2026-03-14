@@ -40,6 +40,7 @@ func ExampleSlice() {
 func (a Slice[T]) All(block func(T) bool) bool
 func (a Slice[T]) Any(block func(T) bool) bool
 func (a Slice[T]) At(index int) *T
+func (a Slice[T]) Compact() Slice[T]
 func (a Slice[T]) CountBy(block func(T) bool) (count int)
 func (a Slice[T]) CountElement(element T) (count int)
 func (a Slice[T]) Cycle(count int, block func(T))
