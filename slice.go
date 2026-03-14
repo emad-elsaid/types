@@ -50,6 +50,20 @@ func (a Slice[T]) CountBy(block func(T) bool) (count int) {
 	return count
 }
 
+// Compact returns a new slice with all zero values removed.
+// For comparable types, zero values are: 0 for numbers, "" for strings, false for bools, nil for pointers.
+// This is inspired by Ruby's Array#compact method.
+func (a Slice[T]) Compact() Slice[T] {
+	var zero T
+	result := make(Slice[T], 0, len(a))
+	for _, element := range a {
+		if element != zero {
+			result = append(result, element)
+		}
+	}
+	return result
+}
+
 // Cycle will cycle through Slice elements "count" times passing each
 // element to "block" function
 func (a Slice[T]) Cycle(count int, block func(T)) {
