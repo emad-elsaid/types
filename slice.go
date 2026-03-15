@@ -470,6 +470,34 @@ func (a Slice[T]) Shuffle() Slice[T] {
 	return result
 }
 
+// Sample returns a random element from the slice.
+// If the slice is empty, returns the zero value of T and false.
+// The original slice is not modified.
+func (a Slice[T]) Sample() (T, bool) {
+	if len(a) == 0 {
+		var zero T
+		return zero, false
+	}
+	return a[rand.Intn(len(a))], true
+}
+
+// SampleN returns n random elements from the slice without replacement.
+// If n is greater than the slice length, returns all elements in random order.
+// If n is less than or equal to 0, returns an empty slice.
+// The original slice is not modified.
+func (a Slice[T]) SampleN(n int) Slice[T] {
+	if n <= 0 {
+		return Slice[T]{}
+	}
+	if n >= len(a) {
+		return a.Shuffle()
+	}
+
+	// Create a shuffled copy and take first n elements
+	shuffled := a.Shuffle()
+	return shuffled[:n]
+}
+
 // Unique returns a unique list of elements in the slice. order or the result is
 // same order of the items in the source slice
 func (a Slice[T]) Unique() Slice[T] {
