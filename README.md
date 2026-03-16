@@ -83,6 +83,7 @@ func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T]
 func (a Slice[T]) Shift() (T, Slice[T])
 func (a Slice[T]) Shuffle() Slice[T]
 func (a Slice[T]) TakeWhile(predicate func(T) bool) Slice[T]
+func (a Slice[T]) Tally() map[T]int
 func (a Slice[T]) Unique() Slice[T]
 func (a Slice[T]) Unshift(element T) Slice[T]
 func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U

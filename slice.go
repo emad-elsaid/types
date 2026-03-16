@@ -531,6 +531,17 @@ func (s Slice[T]) Partition(predicate func(T) bool) (Slice[T], Slice[T]) {
 	return trueSet, falseSet
 }
 
+// Tally returns a map counting the occurrences of each element in the slice.
+// This is inspired by Ruby's Array#tally method.
+// Example: Slice[int]{1, 2, 2, 3, 3, 3}.Tally() returns map[int]int{1: 1, 2: 2, 3: 3}
+func (a Slice[T]) Tally() map[T]int {
+	result := make(map[T]int)
+	for _, element := range a {
+		result[element]++
+	}
+	return result
+}
+
 // SliceReduce applies a function against an accumulator and each element in the slice
 func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U {
 	result := initial
