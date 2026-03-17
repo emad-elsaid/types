@@ -670,11 +670,39 @@ func TestSliceReverseNoMutation(t *testing.T) {
 }
 
 func TestSliceShuffle(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	a = a.Shuffle()
-	notResult := Slice[int]{1, 2, 3, 4}
-	if a.IsEq(notResult) {
-		t.Error("Expected arrays not to equal after shuffle but it was the same")
+	// Test that Shuffle returns a valid permutation and doesn't lose elements
+	original := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	shuffled := original.Shuffle()
+
+	// Verify same length
+	if len(shuffled) != len(original) {
+		t.Errorf("Expected length %d, got %d", len(original), len(shuffled))
+	}
+
+	// Verify all original elements are present (frequency check)
+	originalTally := original.Tally()
+	shuffledTally := shuffled.Tally()
+
+	for key, count := range originalTally {
+		if shuffledTally[key] != count {
+			t.Errorf("Element %d appears %d times in original but %d times in shuffled",
+				key, count, shuffledTally[key])
+		}
+	}
+
+	// Statistical test: with 10 elements over 100 shuffles,
+	// it's astronomically unlikely (< 10^-157) to get the same order every time
+	unchangedCount := 0
+	for i := 0; i < 100; i++ {
+		result := original.Shuffle()
+		if result.IsEq(original) {
+			unchangedCount++
+		}
+	}
+
+	// If more than 10% remain unchanged, something is wrong with randomness
+	if unchangedCount > 10 {
+		t.Errorf("Shuffle produced original order %d/100 times, expected < 10", unchangedCount)
 	}
 }
 
