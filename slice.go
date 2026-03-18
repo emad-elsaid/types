@@ -542,6 +542,25 @@ func (a Slice[T]) Tally() map[T]int {
 	return result
 }
 
+// Zip combines this slice with another slice element-wise, creating pairs.
+// Returns a slice of pairs (2-element arrays) where each pair contains
+// one element from this slice and one from the other slice at the same index.
+// The resulting slice will have the length of the shorter input slice.
+// Inspired by Ruby's Array#zip method.
+// Example: Slice[int]{1, 2, 3}.Zip(Slice[string]{"a", "b"}) returns [[1,"a"], [2,"b"]]
+func Zip[T, U comparable](a Slice[T], b Slice[U]) [][2]any {
+	minLen := len(a)
+	if len(b) < minLen {
+		minLen = len(b)
+	}
+
+	result := make([][2]any, minLen)
+	for i := 0; i < minLen; i++ {
+		result[i] = [2]any{a[i], b[i]}
+	}
+	return result
+}
+
 // SliceReduce applies a function against an accumulator and each element in the slice
 func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U {
 	result := initial

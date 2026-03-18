@@ -86,6 +86,7 @@ func (a Slice[T]) TakeWhile(predicate func(T) bool) Slice[T]
 func (a Slice[T]) Tally() map[T]int
 func (a Slice[T]) Unique() Slice[T]
 func (a Slice[T]) Unshift(element T) Slice[T]
+func Zip[T, U comparable](a Slice[T], b Slice[U]) [][2]any
 func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U
 ```
 
