@@ -458,6 +458,32 @@ func (a Slice[T]) Reverse() Slice[T] {
 	return result
 }
 
+// Rotate returns a new slice with elements rotated by count positions.
+// Positive count rotates to the left (elements move towards index 0),
+// negative count rotates to the right (elements move towards the end).
+// The original slice is not modified.
+// Inspired by Ruby's Array#rotate method.
+// Example: Slice[int]{1, 2, 3, 4, 5}.Rotate(2) returns [3, 4, 5, 1, 2]
+// Example: Slice[int]{1, 2, 3, 4, 5}.Rotate(-2) returns [4, 5, 1, 2, 3]
+func (a Slice[T]) Rotate(count int) Slice[T] {
+	length := len(a)
+	if length == 0 {
+		return Slice[T]{}
+	}
+
+	// Normalize count to be within slice bounds
+	// Use modulo to handle counts larger than slice length
+	count = count % length
+	if count < 0 {
+		count = length + count
+	}
+
+	result := make(Slice[T], length)
+	copy(result, a[count:])
+	copy(result[length-count:], a[:count])
+	return result
+}
+
 // Shuffle returns a new slice with elements in random order.
 // The original slice is not modified.
 func (a Slice[T]) Shuffle() Slice[T] {
