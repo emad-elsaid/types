@@ -76,6 +76,7 @@ func (a Slice[T]) Pop() (Slice[T], T)
 func (a Slice[T]) Push(element T) Slice[T]
 func (a Slice[T]) Reduce(block func(T) bool) Slice[T]
 func (a Slice[T]) Reverse() Slice[T]
+func (a Slice[T]) Rotate(count int) Slice[T]
 func (a Slice[T]) Sample() (T, bool)
 func (a Slice[T]) SampleN(n int) Slice[T]
 func (a Slice[T]) Select(block func(T) bool) Slice[T]
