@@ -539,6 +539,17 @@ func (a Slice[T]) Unique() Slice[T] {
 	return out
 }
 
+// Flatten converts a slice of slices into a single-level slice by concatenating all nested slices.
+// This is inspired by Ruby's Array#flatten method (depth=1).
+// Example: Flatten(Slice[Slice[int]]{{1, 2}, {3, 4}, {5}}) returns Slice[int]{1, 2, 3, 4, 5}
+func Flatten[T any](a [][]T) []T {
+	result := []T{}
+	for _, nested := range a {
+		result = append(result, nested...)
+	}
+	return result
+}
+
 // Partition divides the slice into two new slices based on the predicate function.
 // Returns two slices: the first contains elements that satisfy the predicate,
 // the second contains elements that do not satisfy the predicate.
