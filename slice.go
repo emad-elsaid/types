@@ -550,6 +550,34 @@ func Flatten[T any](a [][]T) []T {
 	return result
 }
 
+// ChunkWhile groups consecutive elements where the predicate returns true for each pair.
+// The predicate receives two consecutive elements (current, next) and groups continue
+// while it returns true. Returns a slice of slices, each representing a consecutive group.
+// This is inspired by Ruby's Array#chunk_while method.
+// Example: Slice[int]{1, 2, 4, 5, 7, 9}.ChunkWhile(func(a, b int) bool { return b - a == 1 })
+//          returns []Slice[int]{{1, 2}, {4, 5}, {7}, {9}}
+func (a Slice[T]) ChunkWhile(predicate func(T, T) bool) []Slice[T] {
+	if len(a) == 0 {
+		return []Slice[T]{}
+	}
+
+	result := []Slice[T]{}
+	currentChunk := Slice[T]{a[0]}
+
+	for i := 1; i < len(a); i++ {
+		if predicate(a[i-1], a[i]) {
+			currentChunk = append(currentChunk, a[i])
+		} else {
+			result = append(result, currentChunk)
+			currentChunk = Slice[T]{a[i]}
+		}
+	}
+
+	// Append the last chunk
+	result = append(result, currentChunk)
+	return result
+}
+
 // Partition divides the slice into two new slices based on the predicate function.
 // Returns two slices: the first contains elements that satisfy the predicate,
 // the second contains elements that do not satisfy the predicate.
