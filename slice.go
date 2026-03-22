@@ -635,3 +635,21 @@ func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U 
 
 	return result
 }
+
+// SliceSum returns the sum of all elements in the slice.
+// Works with any numeric type (int, float64, etc.).
+// Returns the zero value for an empty slice.
+func SliceSum[T Number](s Slice[T]) T {
+	var sum T
+	for _, item := range s {
+		sum += item
+	}
+	return sum
+}
+
+// Number is a constraint that permits any numeric type.
+type Number interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64
+}
