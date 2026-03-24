@@ -393,6 +393,52 @@ func TestCommand_InputReader(t *testing.T) {
 	})
 }
 
+func TestCommand_CmdFn_WithInputReader(t *testing.T) {
+	t.Run("CmdFn with InputReader success", func(t *testing.T) {
+		reader := strings.NewReader("hello world")
+		cmd := CmdFn(func(stdin string) (string, string, error) {
+			return strings.ToUpper(stdin), "", nil
+		}).InputReader(reader)
+
+		stdout := cmd.Stdout()
+		require.Equal(t, "HELLO WORLD", stdout)
+		require.NoError(t, cmd.Error())
+	})
+
+	t.Run("CmdFn with InputReader error handling", func(t *testing.T) {
+		// Create a reader that will fail
+		testErr := os.ErrClosed
+		errReader := &errorReader{err: testErr}
+		cmd := CmdFn(func(stdin string) (string, string, error) {
+			return stdin, "", nil
+		}).InputReader(errReader)
+
+		_ = cmd.Stdout() // Trigger execution
+		require.Error(t, cmd.Error())
+		require.Equal(t, testErr, cmd.Error())
+	})
+
+	t.Run("CmdFn with previous command", func(t *testing.T) {
+		cmd := Cmd("echo", "test input").
+			PipeFn(func(stdin string) (string, string, error) {
+				return strings.ToUpper(stdin), "", nil
+			})
+
+		stdout := cmd.Stdout()
+		require.Equal(t, "TEST INPUT\n", stdout)
+		require.NoError(t, cmd.Error())
+	})
+}
+
+// errorReader is a helper type that always returns an error on Read
+type errorReader struct {
+	err error
+}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, e.err
+}
+
 func TestCommand_String(t *testing.T) {
 	tests := []struct {
 		name     string
