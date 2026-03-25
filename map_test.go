@@ -235,4 +235,73 @@ func TestMap(t *testing.T) {
 			t.Errorf("Expected original map size 4, got %d", m.Size())
 		}
 	})
+
+	t.Run("Transform", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		// Transform by doubling values
+		transformed := m.Transform(func(k string, v int) int {
+			return v * 2
+		})
+
+		if transformed.Size() != 3 {
+			t.Errorf("Expected transformed size 3, got %d", transformed.Size())
+		}
+
+		// Check transformed values
+		if v, ok := transformed.Load("a"); !ok || v != 2 {
+			t.Errorf("Expected a=2, got %d", v)
+		}
+		if v, ok := transformed.Load("b"); !ok || v != 4 {
+			t.Errorf("Expected b=4, got %d", v)
+		}
+		if v, ok := transformed.Load("c"); !ok || v != 6 {
+			t.Errorf("Expected c=6, got %d", v)
+		}
+
+		// Original map should be unchanged
+		if v, ok := m.Load("a"); !ok || v != 1 {
+			t.Errorf("Expected original a=1, got %d", v)
+		}
+		if m.Size() != 3 {
+			t.Errorf("Expected original map size 3, got %d", m.Size())
+		}
+	})
+
+	t.Run("Transform with key dependency", func(t *testing.T) {
+		m := Map[string, string]{}
+		m.Store("name", "john")
+		m.Store("city", "berlin")
+		m.Store("country", "germany")
+
+		// Transform by capitalizing and prefixing with key
+		transformed := m.Transform(func(k string, v string) string {
+			return k + ":" + v
+		})
+
+		if v, ok := transformed.Load("name"); !ok || v != "name:john" {
+			t.Errorf("Expected 'name:john', got %s", v)
+		}
+		if v, ok := transformed.Load("city"); !ok || v != "city:berlin" {
+			t.Errorf("Expected 'city:berlin', got %s", v)
+		}
+		if v, ok := transformed.Load("country"); !ok || v != "country:germany" {
+			t.Errorf("Expected 'country:germany', got %s", v)
+		}
+	})
+
+	t.Run("Transform empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+
+		transformed := m.Transform(func(k string, v int) int {
+			return v * 10
+		})
+
+		if transformed.Size() != 0 {
+			t.Errorf("Expected transformed empty map, got size %d", transformed.Size())
+		}
+	})
 }
