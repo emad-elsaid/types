@@ -134,3 +134,16 @@ func (m *Map[K, V]) Filter(predicate func(k K, v V) bool) *Map[K, V] {
 	})
 	return result
 }
+
+// Transform returns a new Map with transformed values while preserving keys.
+// This is useful for mapping operations on map values while keeping the same key structure.
+func (m *Map[K, V]) Transform(transformer func(k K, v V) V) *Map[K, V] {
+	result := &Map[K, V]{}
+	m.store.Range(func(k, v any) bool {
+		key := k.(K)
+		value := v.(V)
+		result.Store(key, transformer(key, value))
+		return true
+	})
+	return result
+}
