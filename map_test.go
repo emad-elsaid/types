@@ -304,4 +304,90 @@ func TestMap(t *testing.T) {
 			t.Errorf("Expected transformed empty map, got size %d", transformed.Size())
 		}
 	})
+
+	t.Run("NewMapFrom", func(t *testing.T) {
+		source := map[string]int{
+			"a": 1,
+			"b": 2,
+			"c": 3,
+		}
+
+		m := NewMapFrom(source)
+
+		if m.Size() != 3 {
+			t.Errorf("Expected size 3, got %d", m.Size())
+		}
+
+		if v, ok := m.Load("a"); !ok || v != 1 {
+			t.Errorf("Expected a=1, got %d", v)
+		}
+		if v, ok := m.Load("b"); !ok || v != 2 {
+			t.Errorf("Expected b=2, got %d", v)
+		}
+		if v, ok := m.Load("c"); !ok || v != 3 {
+			t.Errorf("Expected c=3, got %d", v)
+		}
+	})
+
+	t.Run("NewMapFrom empty map", func(t *testing.T) {
+		source := map[string]int{}
+		m := NewMapFrom(source)
+
+		if m.Size() != 0 {
+			t.Errorf("Expected size 0 for empty map, got %d", m.Size())
+		}
+	})
+
+	t.Run("Entries", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		entries := m.Entries()
+
+		if len(entries) != 3 {
+			t.Errorf("Expected 3 entries, got %d", len(entries))
+		}
+
+		if entries["a"] != 1 {
+			t.Errorf("Expected a=1, got %d", entries["a"])
+		}
+		if entries["b"] != 2 {
+			t.Errorf("Expected b=2, got %d", entries["b"])
+		}
+		if entries["c"] != 3 {
+			t.Errorf("Expected c=3, got %d", entries["c"])
+		}
+	})
+
+	t.Run("Entries empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+		entries := m.Entries()
+
+		if len(entries) != 0 {
+			t.Errorf("Expected 0 entries for empty map, got %d", len(entries))
+		}
+	})
+
+	t.Run("NewMapFrom and Entries roundtrip", func(t *testing.T) {
+		original := map[string]int{
+			"x": 10,
+			"y": 20,
+			"z": 30,
+		}
+
+		m := NewMapFrom(original)
+		result := m.Entries()
+
+		if len(result) != len(original) {
+			t.Errorf("Expected %d entries, got %d", len(original), len(result))
+		}
+
+		for k, v := range original {
+			if result[k] != v {
+				t.Errorf("Expected %s=%d, got %d", k, v, result[k])
+			}
+		}
+	})
 }

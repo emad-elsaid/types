@@ -8,6 +8,16 @@ type Map[K comparable, V any] struct {
 	store sync.Map
 }
 
+// NewMapFrom creates a new Map initialized with entries from a regular Go map.
+// This provides a convenient way to convert from map[K]V to *Map[K, V].
+func NewMapFrom[K comparable, V any](m map[K]V) *Map[K, V] {
+	result := &Map[K, V]{}
+	for k, v := range m {
+		result.Store(k, v)
+	}
+	return result
+}
+
 func (m *Map[K, V]) Store(k K, v V) {
 	m.store.Store(k, v)
 }
@@ -143,6 +153,18 @@ func (m *Map[K, V]) Transform(transformer func(k K, v V) V) *Map[K, V] {
 		key := k.(K)
 		value := v.(V)
 		result.Store(key, transformer(key, value))
+		return true
+	})
+	return result
+}
+
+// Entries returns a regular Go map containing all key-value pairs from the Map.
+// This provides a convenient way to convert from *Map[K, V] to map[K]V.
+// The order of entries is not guaranteed.
+func (m *Map[K, V]) Entries() map[K]V {
+	result := make(map[K]V)
+	m.store.Range(func(k, v any) bool {
+		result[k.(K)] = v.(V)
 		return true
 	})
 	return result
