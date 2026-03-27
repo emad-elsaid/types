@@ -169,3 +169,37 @@ func (m *Map[K, V]) Entries() map[K]V {
 	})
 	return result
 }
+
+// Any returns true if the predicate returns true for any entry in the map.
+// Returns false for empty maps.
+func (m *Map[K, V]) Any(predicate func(k K, v V) bool) bool {
+	found := false
+	m.store.Range(func(k, v any) bool {
+		if predicate(k.(K), v.(V)) {
+			found = true
+			return false // stop iteration
+		}
+		return true
+	})
+	return found
+}
+
+// All returns true if the predicate returns true for all entries in the map.
+// Returns true for empty maps.
+func (m *Map[K, V]) All(predicate func(k K, v V) bool) bool {
+	allMatch := true
+	m.store.Range(func(k, v any) bool {
+		if !predicate(k.(K), v.(V)) {
+			allMatch = false
+			return false // stop iteration
+		}
+		return true
+	})
+	return allMatch
+}
+
+// None returns true if no entries in the map satisfy the predicate.
+// Returns true for empty maps.
+func (m *Map[K, V]) None(predicate func(k K, v V) bool) bool {
+	return !m.Any(predicate)
+}

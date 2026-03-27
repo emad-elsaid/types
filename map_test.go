@@ -390,4 +390,116 @@ func TestMap(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Any", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		// Check if any value is greater than 2
+		if !m.Any(func(k string, v int) bool { return v > 2 }) {
+			t.Error("Expected Any to return true for predicate v > 2")
+		}
+
+		// Check if any value is greater than 10
+		if m.Any(func(k string, v int) bool { return v > 10 }) {
+			t.Error("Expected Any to return false for predicate v > 10")
+		}
+
+		// Check with key condition
+		if !m.Any(func(k string, v int) bool { return k == "b" }) {
+			t.Error("Expected Any to return true for key 'b'")
+		}
+	})
+
+	t.Run("Any empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+
+		if m.Any(func(k string, v int) bool { return true }) {
+			t.Error("Expected Any to return false for empty map")
+		}
+	})
+
+	t.Run("All", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 2)
+		m.Store("b", 4)
+		m.Store("c", 6)
+
+		// Check if all values are even
+		if !m.All(func(k string, v int) bool { return v%2 == 0 }) {
+			t.Error("Expected All to return true for all even values")
+		}
+
+		m.Store("d", 5)
+		// Now check with an odd value
+		if m.All(func(k string, v int) bool { return v%2 == 0 }) {
+			t.Error("Expected All to return false after adding odd value")
+		}
+
+		// Check key condition - all keys should be single chars
+		if !m.All(func(k string, v int) bool { return len(k) == 1 }) {
+			t.Error("Expected All to return true for single-char keys")
+		}
+	})
+
+	t.Run("All empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+
+		// All should return true for empty map (vacuous truth)
+		if !m.All(func(k string, v int) bool { return false }) {
+			t.Error("Expected All to return true for empty map")
+		}
+	})
+
+	t.Run("None", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		// Check if no value is greater than 10
+		if !m.None(func(k string, v int) bool { return v > 10 }) {
+			t.Error("Expected None to return true for predicate v > 10")
+		}
+
+		// Check if no value is equal to 2
+		if m.None(func(k string, v int) bool { return v == 2 }) {
+			t.Error("Expected None to return false for predicate v == 2")
+		}
+
+		// Check with key condition
+		if m.None(func(k string, v int) bool { return k == "a" }) {
+			t.Error("Expected None to return false when key 'a' exists")
+		}
+	})
+
+	t.Run("None empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+
+		// None should return true for empty map
+		if !m.None(func(k string, v int) bool { return true }) {
+			t.Error("Expected None to return true for empty map")
+		}
+	})
+
+	t.Run("Any/All/None consistency", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+
+		predicate := func(k string, v int) bool { return v > 1 }
+
+		// If Any is true and All is false, None must be false
+		if m.Any(predicate) && !m.All(predicate) && m.None(predicate) {
+			t.Error("Inconsistent behavior: Any is true but None is also true")
+		}
+
+		// None should be the opposite of Any
+		if m.None(predicate) == m.Any(predicate) {
+			t.Error("None and Any returned the same value")
+		}
+	})
 }
