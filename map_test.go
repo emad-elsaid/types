@@ -502,4 +502,155 @@ func TestMap(t *testing.T) {
 			t.Error("None and Any returned the same value")
 		}
 	})
+
+	t.Run("Partition", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 2)
+		m.Store("c", 3)
+		m.Store("d", 4)
+
+		// Partition by even/odd
+		evens, odds := m.Partition(func(k string, v int) bool {
+			return v%2 == 0
+		})
+
+		// Check evens map
+		if evens.Size() != 2 {
+			t.Errorf("Expected 2 even entries, got %d", evens.Size())
+		}
+		if !evens.Has("b") || !evens.Has("d") {
+			t.Error("Expected evens to contain 'b' and 'd'")
+		}
+		if v, _ := evens.Load("b"); v != 2 {
+			t.Errorf("Expected b=2 in evens, got %d", v)
+		}
+		if v, _ := evens.Load("d"); v != 4 {
+			t.Errorf("Expected d=4 in evens, got %d", v)
+		}
+
+		// Check odds map
+		if odds.Size() != 2 {
+			t.Errorf("Expected 2 odd entries, got %d", odds.Size())
+		}
+		if !odds.Has("a") || !odds.Has("c") {
+			t.Error("Expected odds to contain 'a' and 'c'")
+		}
+		if v, _ := odds.Load("a"); v != 1 {
+			t.Errorf("Expected a=1 in odds, got %d", v)
+		}
+		if v, _ := odds.Load("c"); v != 3 {
+			t.Errorf("Expected c=3 in odds, got %d", v)
+		}
+
+		// Original map should be unchanged
+		if m.Size() != 4 {
+			t.Errorf("Expected original map size 4, got %d", m.Size())
+		}
+	})
+
+	t.Run("Partition all true", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 2)
+		m.Store("b", 4)
+		m.Store("c", 6)
+
+		// All values satisfy predicate
+		trueMap, falseMap := m.Partition(func(k string, v int) bool {
+			return v%2 == 0
+		})
+
+		if trueMap.Size() != 3 {
+			t.Errorf("Expected trueMap size 3, got %d", trueMap.Size())
+		}
+		if falseMap.Size() != 0 {
+			t.Errorf("Expected falseMap size 0, got %d", falseMap.Size())
+		}
+	})
+
+	t.Run("Partition all false", func(t *testing.T) {
+		m := Map[string, int]{}
+		m.Store("a", 1)
+		m.Store("b", 3)
+		m.Store("c", 5)
+
+		// No values satisfy predicate
+		trueMap, falseMap := m.Partition(func(k string, v int) bool {
+			return v%2 == 0
+		})
+
+		if trueMap.Size() != 0 {
+			t.Errorf("Expected trueMap size 0, got %d", trueMap.Size())
+		}
+		if falseMap.Size() != 3 {
+			t.Errorf("Expected falseMap size 3, got %d", falseMap.Size())
+		}
+	})
+
+	t.Run("Partition empty map", func(t *testing.T) {
+		m := Map[string, int]{}
+
+		trueMap, falseMap := m.Partition(func(k string, v int) bool {
+			return v > 0
+		})
+
+		if trueMap.Size() != 0 {
+			t.Errorf("Expected trueMap size 0 for empty map, got %d", trueMap.Size())
+		}
+		if falseMap.Size() != 0 {
+			t.Errorf("Expected falseMap size 0 for empty map, got %d", falseMap.Size())
+		}
+	})
+
+	t.Run("Partition with key-based predicate", func(t *testing.T) {
+		m := Map[string, string]{}
+		m.Store("alice", "engineer")
+		m.Store("bob", "designer")
+		m.Store("charlie", "engineer")
+		m.Store("diana", "manager")
+
+		// Partition by names starting with vowels
+		vowels, consonants := m.Partition(func(k string, v string) bool {
+			first := k[0]
+			return first == 'a' || first == 'e' || first == 'i' || first == 'o' || first == 'u'
+		})
+
+		if vowels.Size() != 1 {
+			t.Errorf("Expected 1 vowel name, got %d", vowels.Size())
+		}
+		if !vowels.Has("alice") {
+			t.Error("Expected vowels to contain 'alice'")
+		}
+
+		if consonants.Size() != 3 {
+			t.Errorf("Expected 3 consonant names, got %d", consonants.Size())
+		}
+	})
+
+	t.Run("Partition preserves all entries", func(t *testing.T) {
+		m := Map[int, string]{}
+		m.Store(1, "one")
+		m.Store(2, "two")
+		m.Store(3, "three")
+		m.Store(4, "four")
+		m.Store(5, "five")
+
+		// Partition by value length
+		longNames, shortNames := m.Partition(func(k int, v string) bool {
+			return len(v) > 3
+		})
+
+		// Verify total count
+		totalSize := longNames.Size() + shortNames.Size()
+		if totalSize != m.Size() {
+			t.Errorf("Expected total size %d, got %d", m.Size(), totalSize)
+		}
+
+		// Verify no overlap
+		for _, k := range longNames.Keys() {
+			if shortNames.Has(k) {
+				t.Errorf("Key %d exists in both partitions", k)
+			}
+		}
+	})
 }

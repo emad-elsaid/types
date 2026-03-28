@@ -203,3 +203,25 @@ func (m *Map[K, V]) All(predicate func(k K, v V) bool) bool {
 func (m *Map[K, V]) None(predicate func(k K, v V) bool) bool {
 	return !m.Any(predicate)
 }
+
+// Partition divides the map into two new maps based on the predicate function.
+// Returns two maps: the first contains entries that satisfy the predicate,
+// the second contains entries that do not satisfy the predicate.
+// This is inspired by Ruby's Hash#partition method.
+func (m *Map[K, V]) Partition(predicate func(k K, v V) bool) (*Map[K, V], *Map[K, V]) {
+	trueMap := &Map[K, V]{}
+	falseMap := &Map[K, V]{}
+
+	m.store.Range(func(k, v any) bool {
+		key := k.(K)
+		value := v.(V)
+		if predicate(key, value) {
+			trueMap.Store(key, value)
+		} else {
+			falseMap.Store(key, value)
+		}
+		return true
+	})
+
+	return trueMap, falseMap
+}
