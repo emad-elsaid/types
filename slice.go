@@ -353,6 +353,18 @@ func (a Slice[T]) Select(block func(T) bool) Slice[T] {
 	return a.KeepIf(block)
 }
 
+// Reject returns a new slice containing elements for which the block returns false.
+// It is the logical opposite of Select (or KeepIf).
+func (a Slice[T]) Reject(block func(T) bool) Slice[T] {
+	result := Slice[T]{}
+	for _, o := range a {
+		if !block(o) {
+			result = append(result, o)
+		}
+	}
+	return result
+}
+
 // SelectUntil selects from the start of the slice until the block returns true,
 // excluding the item that returned true.
 func (a Slice[T]) SelectUntil(block func(T) bool) Slice[T] {
