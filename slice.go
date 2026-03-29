@@ -607,6 +607,28 @@ func (a Slice[T]) Tally() map[T]int {
 	return result
 }
 
+// Duplicates returns a new slice containing elements that appear more than once in the original slice.
+// Each duplicate element appears only once in the result. The order is based on first appearance.
+// Example: Slice[int]{1, 2, 2, 3, 1, 4}.Duplicates() returns Slice[int]{1, 2}
+func (a Slice[T]) Duplicates() Slice[T] {
+	counts := make(map[T]int)
+	for _, element := range a {
+		counts[element]++
+	}
+
+	duplicates := Slice[T]{}
+	seen := make(map[T]struct{})
+	for _, element := range a {
+		if counts[element] > 1 {
+			if _, exists := seen[element]; !exists {
+				duplicates = append(duplicates, element)
+				seen[element] = struct{}{}
+			}
+		}
+	}
+	return duplicates
+}
+
 // Zip combines this slice with another slice element-wise, creating pairs.
 // Returns a slice of pairs (2-element arrays) where each pair contains
 // one element from this slice and one from the other slice at the same index.
