@@ -1,944 +1,3224 @@
-package types
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
 
-func AssertSlicesEquals[T comparable](t *testing.T, a1 Slice[T], a2 Slice[T]) {
-	if len(a1) != len(a2) {
-		t.Errorf("Slices doesn't have the same length %d, %d", len(a1), len(a2))
-		return
-	}
-
-	for i := range a1 {
-		if a1[i] != a2[i] {
-			t.Errorf("Expected (%v) = %v but got %v", i, a1[i], a2[i])
-		}
-	}
-}
-
-func TestSliceAt(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6, 7}
-	tcs := map[int]int{
-		1:  2,
-		6:  7,
-		-1: 7,
-		-7: 1,
-	}
-
-	for i, v := range tcs {
-		result := a.At(i)
-		if *result != v {
-			t.Errorf("With %d expected %d but found %d", i, v, result)
-		}
-	}
-
-	result := a.At(8)
-	if result != nil {
-		t.Errorf("With %d expected %v but found %d", 8, nil, result)
-	}
-}
-
-func TestSliceLen(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	result := a.Len()
-	if result != 4 {
-		t.Errorf("Expected %d but found %d", 4, result)
-	}
-}
-
-func TestSliceCountElement(t *testing.T) {
-	a := Slice[int]{1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3}
-	tcs := map[int]int{
-		1: 3,
-		2: 4,
-		3: 5,
-		4: 0,
-	}
-
-	for i, v := range tcs {
-		result := a.CountElement(i)
-		if result != v {
-			t.Errorf("With %d expected %d but found %d", i, v, result)
-		}
-	}
-}
-
-func TestSliceCountBy(t *testing.T) {
-	a := Slice[int]{1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3}
-	tcs := []struct {
-		name   string
-		f      func(e int) bool
-		result int
-	}{
-		{
-			name:   "e == 1",
-			f:      func(e int) bool { return e == 1 },
-			result: 3,
-		},
-		{
-			name:   "e < 1",
-			f:      func(e int) bool { return e < 1 },
-			result: 0,
-		},
-		{
-			name:   "e > 1",
-			f:      func(e int) bool { return e > 1 },
-			result: 9,
-		},
-	}
-
-	for _, tc := range tcs {
-		result := a.CountBy(tc.f)
-		if result != tc.result {
-			t.Errorf("With %s expected %d but found %d", tc.name, tc.result, result)
-		}
-	}
-}
-
-func TestSliceCycle(t *testing.T) {
-	a := Slice[int]{1, 2}
-
-	elements := []int{1, 2, 1, 2, 1, 2}
-	a.Cycle(3, func(e int) {
-		result := e
-		if result != elements[0] {
-			t.Errorf("Expected %d but found %d", elements[0], result)
-		}
-
-		elements = elements[1:]
-	})
-}
-
-func TestSliceAny(t *testing.T) {
-	a := Slice[bool]{false, false, false}
-	identity := func(e bool) bool {
-		return e
-	}
-	if a.Any(identity) {
-		t.Error("Expected false but got true")
-	}
-
-	a = Slice[bool]{false, true, false}
-	if !a.Any(identity) {
-		t.Error("Expected true but got false")
-	}
-}
-
-func TestSliceAll(t *testing.T) {
-	a := Slice[bool]{true, true, true}
-	identity := func(e bool) bool {
-		return e
-	}
-	if !a.All(identity) {
-		t.Error("Expected true but got false")
-	}
-
-	a = Slice[bool]{false, true, false}
-	if a.All(identity) {
-		t.Error("Expected false but got true")
-	}
-}
-
-func TestSliceDelete(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 1, 2, 3, 4}
-	a = a.Delete(1)
-	result := Slice[int]{2, 3, 4, 2, 3, 4}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceDeleteAt(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	a = a.DeleteAt(1)
-	result := Slice[int]{1, 3, 4}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceDeleteAtNoMutation(t *testing.T) {
-	// Test that DeleteAt doesn't mutate the original slice
-	original := Slice[int]{1, 2, 3, 4, 5}
-	originalCopy := Slice[int]{1, 2, 3, 4, 5}
-	result := original.DeleteAt(2)
-
-	// Verify the result is correct
-	expected := Slice[int]{1, 2, 4, 5}
-	AssertSlicesEquals(t, expected, result)
-
-	// Verify original slice is unchanged
-	AssertSlicesEquals(t, originalCopy, original)
-}
-
-func TestSliceDeleteIf(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	a = a.DeleteIf(func(e int) bool {
-		return e > 1
-	})
-	result := Slice[int]{1}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceDrop(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	a = a.Drop(5)
-	result := Slice[int]{6, 7, 8, 9}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceDropBoundsChecking(t *testing.T) {
-	// Test dropping more elements than the slice has
-	a := Slice[int]{1, 2, 3}
-	result := a.Drop(10)
-	expected := Slice[int]{}
-	AssertSlicesEquals(t, expected, result)
-
-	// Test dropping exactly the length of the slice
-	result = a.Drop(3)
-	AssertSlicesEquals(t, expected, result)
-
-	// Test dropping negative count
-	result = a.Drop(-5)
-	AssertSlicesEquals(t, a, result)
-
-	// Test dropping zero
-	result = a.Drop(0)
-	AssertSlicesEquals(t, a, result)
-}
-
-func TestSliceEach(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	sum := 0
-	summer := func(e int) { sum += e }
-	a.Each(summer)
-
-	if sum != 6 {
-		t.Errorf("Expected sum to be 6 but found %d", sum)
-	}
-}
-
-func TestSliceEachIndex(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	var sum int
-	summer := func(i int) { sum += i }
-	a.EachIndex(summer)
-
-	if sum != 3 {
-		t.Errorf("Expected sum to be 3 but found %d", sum)
-	}
-}
-
-func TestSliceIsEmpty(t *testing.T) {
-	a := Slice[int]{}
-	if !a.IsEmpty() {
-		t.Error("Expected to be empty but found not empty")
-	}
-
-	a = Slice[int]{1, 2, 3}
-	if a.IsEmpty() {
-		t.Error("Expected to be not empty but found empty")
-	}
-}
-
-func TestSliceIsEq(t *testing.T) {
-	t.Run("equal slices", func(t *testing.T) {
-		a := Slice[int]{1, 2, 3, 4}
-		b := Slice[int]{1, 2, 3, 4}
-
-		if !a.IsEq(b) {
-			t.Error("Expected array a to equal b but found otherwise")
-		}
-	})
-
-	t.Run("different lengths", func(t *testing.T) {
-		a := Slice[int]{1, 2, 3}
-		b := Slice[int]{1, 2, 3, 4}
-
-		if a.IsEq(b) {
-			t.Error("Expected slices with different lengths to not be equal")
-		}
-	})
-
-	t.Run("same length different values", func(t *testing.T) {
-		a := Slice[int]{1, 2, 3, 4}
-		b := Slice[int]{1, 2, 5, 4}
-
-		if a.IsEq(b) {
-			t.Error("Expected slices with different values to not be equal")
-		}
-	})
-
-	t.Run("both empty slices", func(t *testing.T) {
-		a := Slice[int]{}
-		b := Slice[int]{}
-
-		if !a.IsEq(b) {
-			t.Error("Expected empty slices to be equal")
-		}
-	})
-
-	t.Run("one empty one non-empty", func(t *testing.T) {
-		a := Slice[int]{}
-		b := Slice[int]{1, 2}
-
-		if a.IsEq(b) {
-			t.Error("Expected empty and non-empty slices to not be equal")
-		}
-	})
-
-	t.Run("string slices equality", func(t *testing.T) {
-		a := Slice[string]{"hello", "world"}
-		b := Slice[string]{"hello", "world"}
-
-		if !a.IsEq(b) {
-			t.Error("Expected string slices to be equal")
-		}
-	})
-
-	t.Run("string slices inequality", func(t *testing.T) {
-		a := Slice[string]{"hello", "world"}
-		b := Slice[string]{"hello", "universe"}
-
-		if a.IsEq(b) {
-			t.Error("Expected different string slices to not be equal")
-		}
-	})
-}
-
-func TestSliceFetch(t *testing.T) {
-	a := Slice[int]{1, 2}
-
-	result := a.Fetch(0, -1)
-	if result != 1 {
-		t.Errorf("Expected 1 but got %d", result)
-	}
-
-	result = a.Fetch(-1, -1)
-	if result != 2 {
-		t.Errorf("Expected 2 but bot %d", result)
-	}
-
-	result = a.Fetch(3, -1)
-	if result != -1 {
-		t.Errorf("Expecte default value but got %d", result)
-	}
-}
-
-func TestSliceFill(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	result := Slice[int]{1, 2, 1, 1, 1, 6}
-	a.Fill(1, 2, 3)
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceFillBoundsChecking(t *testing.T) {
-	// Test filling beyond slice bounds
-	a := Slice[int]{1, 2, 3, 4, 5}
-	original := Slice[int]{1, 2, 3, 4, 5}
-
-	// Should only fill to end of slice
-	a.Fill(9, 3, 10)
-	expected := Slice[int]{1, 2, 3, 9, 9}
-	AssertSlicesEquals(t, expected, a)
-
-	// Test with negative start
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.Fill(9, -1, 3)
-	AssertSlicesEquals(t, original, a)
-
-	// Test with start beyond bounds
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.Fill(9, 10, 3)
-	AssertSlicesEquals(t, original, a)
-
-	// Test with negative length
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.Fill(9, 2, -5)
-	AssertSlicesEquals(t, original, a)
-}
-
-func TestSliceFillWith(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	result := Slice[int]{1, 2, 200, 300, 400, 6}
-	a.FillWith(2, 3, func(i int) int {
-		return i * 100
-	})
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceFillWithBoundsChecking(t *testing.T) {
-	// Test filling beyond slice bounds
-	a := Slice[int]{1, 2, 3, 4, 5}
-	original := Slice[int]{1, 2, 3, 4, 5}
-
-	// Should only fill to end of slice
-	a.FillWith(3, 10, func(i int) int { return i * 100 })
-	expected := Slice[int]{1, 2, 3, 300, 400}
-	AssertSlicesEquals(t, expected, a)
-
-	// Test with negative start
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.FillWith(-1, 3, func(i int) int { return i * 100 })
-	AssertSlicesEquals(t, original, a)
-
-	// Test with start beyond bounds
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.FillWith(10, 3, func(i int) int { return i * 100 })
-	AssertSlicesEquals(t, original, a)
-
-	// Test with negative length
-	a = Slice[int]{1, 2, 3, 4, 5}
-	a.FillWith(2, -5, func(i int) int { return i * 100 })
-	AssertSlicesEquals(t, original, a)
-}
-
-func TestSliceIndex(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	if a.Index(1) != 0 {
-		t.Errorf("Expected 1 to have index of 0 but got %d", a.Index(1))
-	}
-
-	if a.Index(7) != -1 {
-		t.Errorf("Expected 7 to have index of -1 gut git %d", a.Index(7))
-	}
-}
-
-func TestSliceIndexBy(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	index := a.IndexBy(func(element int) bool {
-		return element > 2
-	})
-	if index != 2 {
-		t.Errorf("Expected element 3 index to be 2 got %d instead", index)
-	}
-
-	index = a.IndexBy(func(element int) bool {
-		return element == -1
-	})
-	if index != -1 {
-		t.Errorf("Expected element -1 index to be -1 go %d instead", index)
-	}
-}
-
-func TestSliceFirst(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	if *a.First() != 1 {
-		t.Errorf("Expected first element to be 1 got %d", a.First())
-	}
-
-	a = Slice[int]{}
-	if a.First() != nil {
-		t.Errorf("Expected first element to be nil got %d", a.First())
-	}
-}
-
-func TestSliceLast(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	if *a.Last() != 4 {
-		t.Errorf("Expected last element to be 4 got %d", a.Last())
-	}
-
-	a = Slice[int]{}
-	if a.Last() != nil {
-		t.Errorf("Expected last element to be nil got %d", a.Last())
-	}
-}
-
-func TestSliceFirsts(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	result := Slice[int]{1, 2, 3}
-	AssertSlicesEquals(t, result, a.Firsts(3))
-}
-
-func TestSliceFirstsBoundsChecking(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-
-	// Test getting more elements than the slice has
-	result := a.Firsts(10)
-	AssertSlicesEquals(t, a, result)
-
-	// Test getting exactly the length of the slice
-	result = a.Firsts(3)
-	AssertSlicesEquals(t, a, result)
-
-	// Test getting negative count
-	result = a.Firsts(-5)
-	expected := Slice[int]{}
-	AssertSlicesEquals(t, expected, result)
-
-	// Test getting zero
-	result = a.Firsts(0)
-	AssertSlicesEquals(t, expected, result)
-}
-
-func TestSliceLasts(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	result := Slice[int]{7, 8, 9}
-	AssertSlicesEquals(t, result, a.Lasts(3))
-}
-
-func TestSliceLastsBoundsChecking(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-
-	// Test getting more elements than the slice has
-	result := a.Lasts(10)
-	AssertSlicesEquals(t, a, result)
-
-	// Test getting exactly the length of the slice
-	result = a.Lasts(3)
-	AssertSlicesEquals(t, a, result)
-
-	// Test getting negative count
-	result = a.Lasts(-5)
-	expected := Slice[int]{}
-	AssertSlicesEquals(t, expected, result)
-
-	// Test getting zero
-	result = a.Lasts(0)
-	AssertSlicesEquals(t, expected, result)
-}
-
-func TestSliceInclude(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	if !a.Include(1) {
-		t.Error("Expected 1 to be found but didn't find it")
-	}
-
-	if a.Include(-1) {
-		t.Error("Expected the string not to be found but it was found!")
-	}
-}
-
-func TestSliceInsert(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	result := Slice[int]{1, 2, 0, 3, 4}
-	b := a.Insert(2, 0)
-	AssertSlicesEquals(t, result, b)
-
-	result = Slice[int]{1, 2, 3, 4, 0}
-	c := a.Insert(4, 0)
-	AssertSlicesEquals(t, result, c)
-
-	result = Slice[int]{0, 1, 2, 3, 4}
-	d := a.Insert(0, 0)
-	AssertSlicesEquals(t, result, d)
-}
-
-func TestSliceKeepIf(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	a = a.KeepIf(func(e int) bool {
-		return e > 3
-	})
-	result := Slice[int]{4, 5, 6}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceSelect(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	a = a.Select(func(e int) bool {
-		return e > 3
-	})
-	result := Slice[int]{4, 5, 6}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceSelectUntil(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5, 6}
-	a = a.SelectUntil(func(e int) bool {
-		return e == 3
-	})
-	result := Slice[int]{1, 2}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceMap(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4, 5}
-	inc := func(e int) int {
-		return e + 100
-	}
-	result := Slice[int]{101, 102, 103, 104, 105}
-	AssertSlicesEquals(t, result, a.Map(inc))
-}
-
-func TestSliceMax(t *testing.T) {
-	a := Slice[int]{1, 2, 3, 4}
-	identity := func(e int) int {
-		return e
-	}
-
-	result := a.Max(identity)
-	if result != 4 {
-		t.Errorf("Expected max to be 4 found %d", result)
-	}
-
-	a = Slice[int]{}
-	result = a.Max(identity)
-	if result != 0 {
-		t.Errorf("Expected max of empty array to be nil got %d", result)
-	}
-}
-
-func TestSliceMin(t *testing.T) {
-	a := Slice[int]{4, 3, 2, 1}
-	identity := func(e int) int {
-		return e
-	}
-
-	result := a.Min(identity)
-	if result != 1 {
-		t.Errorf("Expected min to be 4 found %d", result)
-	}
-
-	a = Slice[int]{}
-	result = a.Min(identity)
-	if result != 0 {
-		t.Errorf("Expected min of empty array to be %d", result)
-	}
-}
-
-func TestSlicePush(t *testing.T) {
-	a := Slice[int]{1, 2}
-	a = a.Push(3)
-	result := Slice[int]{1, 2, 3}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSlicePop(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	a, e := a.Pop()
-	result := Slice[int]{1, 2}
-	if e != 3 {
-		t.Errorf("Expected element to be 3 got %d", e)
-	}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSlicePopEmpty(t *testing.T) {
-	// Test popping from an empty slice
-	a := Slice[int]{}
-	newSlice, element := a.Pop()
-
-	// Should return empty slice and zero value
-	if element != 0 {
-		t.Errorf("Expected zero value (0) for element, got %d", element)
-	}
-	AssertSlicesEquals(t, a, newSlice)
-}
-
-func TestSliceUnshift(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	a = a.Unshift(4)
-	result := Slice[int]{4, 1, 2, 3}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceShift(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	e, a := a.Shift()
-	result := Slice[int]{2, 3}
-	AssertSlicesEquals(t, result, a)
-	if e != 1 {
-		t.Errorf("Expected element to be 1 got %d", e)
-	}
-
-	a = Slice[int]{}
-	e, a = a.Shift()
-	if e != 0 {
-		t.Errorf("Expected element to be nil got %d", e)
-	}
-}
-
-func TestSliceReverse(t *testing.T) {
-	a := Slice[int]{1, 2, 3}
-	a = a.Reverse()
-	result := Slice[int]{3, 2, 1}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceReverseNoMutation(t *testing.T) {
-	// Test that Reverse doesn't mutate the original slice
-	original := Slice[int]{1, 2, 3, 4, 5}
-	originalCopy := Slice[int]{1, 2, 3, 4, 5}
-	result := original.Reverse()
-
-	// Verify the result is correct
-	expected := Slice[int]{5, 4, 3, 2, 1}
-	AssertSlicesEquals(t, expected, result)
-
-	// Verify original slice is unchanged
-	AssertSlicesEquals(t, originalCopy, original)
-}
-
-func TestSliceShuffle(t *testing.T) {
-	// Test that Shuffle returns a valid permutation and doesn't lose elements
-	original := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	shuffled := original.Shuffle()
-
-	// Verify same length
-	if len(shuffled) != len(original) {
-		t.Errorf("Expected length %d, got %d", len(original), len(shuffled))
-	}
-
-	// Verify all original elements are present (frequency check)
-	originalTally := original.Tally()
-	shuffledTally := shuffled.Tally()
-
-	for key, count := range originalTally {
-		if shuffledTally[key] != count {
-			t.Errorf("Element %d appears %d times in original but %d times in shuffled",
-				key, count, shuffledTally[key])
-		}
-	}
-
-	// Statistical test: with 10 elements over 100 shuffles,
-	// it's astronomically unlikely (< 10^-157) to get the same order every time
-	unchangedCount := 0
-	for i := 0; i < 100; i++ {
-		result := original.Shuffle()
-		if result.IsEq(original) {
-			unchangedCount++
-		}
-	}
-
-	// If more than 10% remain unchanged, something is wrong with randomness
-	if unchangedCount > 10 {
-		t.Errorf("Shuffle produced original order %d/100 times, expected < 10", unchangedCount)
-	}
-}
-
-func TestSliceShuffleNoMutation(t *testing.T) {
-	// Test that Shuffle doesn't mutate the original slice
-	original := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	originalCopy := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	result := original.Shuffle()
-
-	// Verify original slice is unchanged
-	AssertSlicesEquals(t, originalCopy, original)
-
-	// Verify result has same length
-	if len(result) != len(original) {
-		t.Errorf("Expected result to have length %d, got %d", len(original), len(result))
-	}
-
-	// Verify result contains all elements (just in different order)
-	for _, v := range originalCopy {
-		if !result.Include(v) {
-			t.Errorf("Expected result to contain %d", v)
-		}
-	}
-}
-
-func TestSliceUnique(t *testing.T) {
-	a := Slice[int]{1, 2, 1, 3, 1, 2, 3, 4}
-	a = a.Unique()
-	result := Slice[int]{1, 2, 3, 4}
-	AssertSlicesEquals(t, result, a)
-}
-
-func TestSliceReduce(t *testing.T) {
+func TestSlice_ChunkWhile(t *testing.T) {
 	tests := []struct {
-		name        string
-		initial     []int
-		initial_val int
-		reduceFn    func(int, int) int
-		want        int
+		name      string
+		slice     Slice[int]
+		predicate func(int, int) bool
+		expected  []Slice[int]
 	}{
 		{
-			name:        "empty slice",
-			initial:     []int{},
-			initial_val: 0,
-			reduceFn:    func(acc, n int) int { return acc + n },
-			want:        0,
+			name:      "consecutive numbers",
+			slice:     Slice[int]{1, 2, 4, 5, 7, 9},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2}, {4, 5}, {7}, {9}},
 		},
 		{
-			name:        "sum all elements",
-			initial:     []int{1, 2, 3, 4, 5},
-			initial_val: 0,
-			reduceFn:    func(acc, n int) int { return acc + n },
-			want:        15,
+			name:      "all consecutive",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2, 3, 4, 5}},
 		},
 		{
-			name:        "multiply all elements",
-			initial:     []int{2, 3, 4},
-			initial_val: 1,
-			reduceFn:    func(acc, n int) int { return acc * n },
-			want:        24,
+			name:      "none consecutive",
+			slice:     Slice[int]{1, 3, 5, 7, 9},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1}, {3}, {5}, {7}, {9}},
 		},
 		{
-			name:        "find maximum",
-			initial:     []int{3, 7, 2, 9, 1},
-			initial_val: 0,
-			reduceFn: func(acc, n int) int {
-				if n > acc {
-					return n
-				}
-				return acc
-			},
-			want: 9,
+			name:      "empty slice",
+			slice:     Slice[int]{},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{},
 		},
 		{
-			name:        "concatenate as string lengths",
-			initial:     []int{10, 100, 1000},
-			initial_val: 0,
-			reduceFn:    func(acc, n int) int { return acc + len(fmt.Sprintf("%d", n)) },
-			want:        9, // 2 + 3 + 4 characters
+			name:      "single element",
+			slice:     Slice[int]{42},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{42}},
+		},
+		{
+			name:      "two elements - match",
+			slice:     Slice[int]{1, 2},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2}},
+		},
+		{
+			name:      "two elements - no match",
+			slice:     Slice[int]{1, 5},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1}, {5}},
+		},
+		{
+			name:      "same values",
+			slice:     Slice[int]{3, 3, 3, 5, 5, 7},
+			predicate: func(a, b int) bool { return a == b },
+			expected:  []Slice[int]{{3, 3, 3}, {5, 5}, {7}},
+		},
+		{
+			name:      "ascending values",
+			slice:     Slice[int]{1, 3, 2, 5, 4, 7, 6},
+			predicate: func(a, b int) bool { return a < b },
+			expected:  []Slice[int]{{1, 3}, {2, 5}, {4, 7}, {6}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Slice[int](tt.initial)
-			got := SliceReduce(s, tt.initial_val, tt.reduceFn)
+			result := tt.slice.ChunkWhile(tt.predicate)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("ChunkWhile() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
 
-			if got != tt.want {
+func TestSlice_ChunkWhile_Strings(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     Slice[string]
+		predicate func(string, string) bool
+		expected  []Slice[string]
+	}{
+		{
+			name:  "same length strings",
+			slice: Slice[string]{"a", "b", "cc", "dd", "eee", "f"},
+			predicate: func(a, b string) bool {
+				return len(a) == len(b)
+			},
+			expected: []Slice[string]{{"a", "b"}, {"cc", "dd"}, {"eee"}, {"f"}},
+		},
+		{
+			name:  "alphabetical order",
+			slice: Slice[string]{"apple", "banana", "cherry", "ant", "bear"},
+			predicate: func(a, b string) bool {
+				return a < b
+			},
+			expected: []Slice[string]{{"apple", "banana", "cherry"}, {"ant", "bear"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.ChunkWhile(tt.predicate)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("ChunkWhile() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceCompact(t *testing.T) {
+	t.Run("removes zero values from int slice", func(t *testing.T) {
+		s := Slice[int]{1, 0, 2, 0, 3, 0}
+		result := s.Compact()
+		expected := Slice[int]{1, 2, 3}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes empty strings from string slice", func(t *testing.T) {
+		s := Slice[string]{"hello", "", "world", "", "!"}
+		result := s.Compact()
+		expected := Slice[string]{"hello", "world", "!"}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes false from bool slice", func(t *testing.T) {
+		s := Slice[bool]{true, false, true, false, true}
+		result := s.Compact()
+		expected := Slice[bool]{true, true, true}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice when all values are zero", func(t *testing.T) {
+		s := Slice[int]{0, 0, 0, 0}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("returns same slice when no zero values", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Compact()
+		if !result.IsEq(s) {
+			t.Errorf("Expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice when input is empty", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("works with float64", func(t *testing.T) {
+		s := Slice[float64]{1.5, 0.0, 2.5, 0.0, 3.5}
+		result := s.Compact()
+		expected := Slice[float64]{1.5, 2.5, 3.5}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes zero runes from rune slice", func(t *testing.T) {
+		s := Slice[rune]{'a', 0, 'b', 0, 'c'}
+		result := s.Compact()
+		expected := Slice[rune]{'a', 'b', 'c'}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("preserves order of non-zero elements", func(t *testing.T) {
+		s := Slice[int]{5, 0, 4, 0, 3, 0, 2, 0, 1}
+		result := s.Compact()
+		expected := Slice[int]{5, 4, 3, 2, 1}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("single zero value returns empty slice", func(t *testing.T) {
+		s := Slice[int]{0}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("single non-zero value returns same value", func(t *testing.T) {
+		s := Slice[int]{42}
+		result := s.Compact()
+		expected := Slice[int]{42}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+}
+
+
+func TestSliceNone(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     Slice[int]
+		predicate func(int) bool
+		expected  bool
+	}{
+		{
+			name:      "empty slice",
+			slice:     Slice[int]{},
+			predicate: func(x int) bool { return x > 0 },
+			expected:  true, // None returns true for empty slices
+		},
+		{
+			name:      "no elements satisfy predicate",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(x int) bool { return x > 10 },
+			expected:  true,
+		},
+		{
+			name:      "some elements satisfy predicate",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(x int) bool { return x == 3 },
+			expected:  false,
+		},
+		{
+			name:      "all elements satisfy predicate",
+			slice:     Slice[int]{2, 4, 6, 8},
+			predicate: func(x int) bool { return x%2 == 0 },
+			expected:  false,
+		},
+		{
+			name:      "single element satisfies",
+			slice:     Slice[int]{5},
+			predicate: func(x int) bool { return x == 5 },
+			expected:  false,
+		},
+		{
+			name:      "single element does not satisfy",
+			slice:     Slice[int]{5},
+			predicate: func(x int) bool { return x == 10 },
+			expected:  true,
+		},
+		{
+			name:      "negative numbers - none negative",
+			slice:     Slice[int]{1, 2, 3, 4},
+			predicate: func(x int) bool { return x < 0 },
+			expected:  true,
+		},
+		{
+			name:      "negative numbers - has negative",
+			slice:     Slice[int]{-1, 2, 3, 4},
+			predicate: func(x int) bool { return x < 0 },
+			expected:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.None(tt.predicate)
+			if result != tt.expected {
+				t.Errorf("None() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSliceFind(t *testing.T) {
+	tests := []struct {
+		name          string
+		slice         Slice[int]
+		predicate     func(int) bool
+		expectedValue int
+		expectedFound bool
+	}{
+		{
+			name:          "empty slice",
+			slice:         Slice[int]{},
+			predicate:     func(x int) bool { return x > 0 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+		{
+			name:          "find first even number",
+			slice:         Slice[int]{1, 3, 4, 5, 6},
+			predicate:     func(x int) bool { return x%2 == 0 },
+			expectedValue: 4,
+			expectedFound: true,
+		},
+		{
+			name:          "find first odd number",
+			slice:         Slice[int]{2, 4, 5, 6, 7},
+			predicate:     func(x int) bool { return x%2 != 0 },
+			expectedValue: 5,
+			expectedFound: true,
+		},
+		{
+			name:          "no element satisfies predicate",
+			slice:         Slice[int]{1, 2, 3, 4, 5},
+			predicate:     func(x int) bool { return x > 10 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+		{
+			name:          "first element satisfies",
+			slice:         Slice[int]{10, 2, 3, 4, 5},
+			predicate:     func(x int) bool { return x > 5 },
+			expectedValue: 10,
+			expectedFound: true,
+		},
+		{
+			name:          "last element satisfies",
+			slice:         Slice[int]{1, 2, 3, 4, 10},
+			predicate:     func(x int) bool { return x > 5 },
+			expectedValue: 10,
+			expectedFound: true,
+		},
+		{
+			name:          "multiple elements satisfy - returns first",
+			slice:         Slice[int]{1, 5, 8, 10, 12},
+			predicate:     func(x int) bool { return x > 4 },
+			expectedValue: 5,
+			expectedFound: true,
+		},
+		{
+			name:          "single element satisfies",
+			slice:         Slice[int]{42},
+			predicate:     func(x int) bool { return x == 42 },
+			expectedValue: 42,
+			expectedFound: true,
+		},
+		{
+			name:          "single element does not satisfy",
+			slice:         Slice[int]{42},
+			predicate:     func(x int) bool { return x == 10 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, found := tt.slice.Find(tt.predicate)
+			if found != tt.expectedFound {
+				t.Errorf("Find() found = %v, expected %v", found, tt.expectedFound)
+			}
+			if value != tt.expectedValue {
+				t.Errorf("Find() value = %v, expected %v", value, tt.expectedValue)
+			}
+		})
+	}
+}
+
+func TestSliceFindString(t *testing.T) {
+	tests := []struct {
+		name          string
+		slice         Slice[string]
+		predicate     func(string) bool
+		expectedValue string
+		expectedFound bool
+	}{
+		{
+			name:          "find string starting with 'h'",
+			slice:         Slice[string]{"apple", "banana", "hello", "world"},
+			predicate:     func(s string) bool { return len(s) > 0 && s[0] == 'h' },
+			expectedValue: "hello",
+			expectedFound: true,
+		},
+		{
+			name:          "find string with length > 6",
+			slice:         Slice[string]{"cat", "dog", "elephant", "fox"},
+			predicate:     func(s string) bool { return len(s) > 6 },
+			expectedValue: "elephant",
+			expectedFound: true,
+		},
+		{
+			name:          "no string matches",
+			slice:         Slice[string]{"cat", "dog", "fox"},
+			predicate:     func(s string) bool { return len(s) > 10 },
+			expectedValue: "",
+			expectedFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, found := tt.slice.Find(tt.predicate)
+			if found != tt.expectedFound {
+				t.Errorf("Find() found = %v, expected %v", found, tt.expectedFound)
+			}
+			if value != tt.expectedValue {
+				t.Errorf("Find() value = %q, expected %q", value, tt.expectedValue)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestFlatten(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    [][]int
+		expected []int
+	}{
+		{
+			name:     "basic flatten",
+			input:    [][]int{{1, 2}, {3, 4}, {5}},
+			expected: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "empty nested slices",
+			input:    [][]int{{}, {1, 2}, {}, {3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "single nested slice",
+			input:    [][]int{{1, 2, 3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "empty outer slice",
+			input:    [][]int{},
+			expected: []int{},
+		},
+		{
+			name:     "all empty nested slices",
+			input:    [][]int{{}, {}, {}},
+			expected: []int{},
+		},
+		{
+			name:     "single elements in nested slices",
+			input:    [][]int{{1}, {2}, {3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "varying lengths",
+			input:    [][]int{{1}, {2, 3, 4}, {5, 6}},
+			expected: []int{1, 2, 3, 4, 5, 6},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Flatten(tt.input)
+			if !Slice[int](result).IsEq(Slice[int](tt.expected)) {
+				t.Errorf("Flatten() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFlattenStrings(t *testing.T) {
+	input := [][]string{
+		{"hello", "world"},
+		{"foo", "bar"},
+		{"baz"},
+	}
+	expected := []string{"hello", "world", "foo", "bar", "baz"}
+	result := Flatten(input)
+
+	if !Slice[string](result).IsEq(Slice[string](expected)) {
+		t.Errorf("Flatten() = %v, want %v", result, expected)
+	}
+}
+
+func TestFlattenPreservesOrder(t *testing.T) {
+	input := [][]int{
+		{9, 8, 7},
+		{6, 5},
+		{4, 3, 2, 1},
+	}
+	expected := []int{9, 8, 7, 6, 5, 4, 3, 2, 1}
+	result := Flatten(input)
+
+	if !Slice[int](result).IsEq(Slice[int](expected)) {
+		t.Errorf("Flatten() should preserve order: got %v, want %v", result, expected)
+	}
+}
+
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestSliceReduce_Basic(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Slice[int]
+		block func(int) bool
+		want  Slice[int]
+	}{
+		{
+			name:  "keep even numbers",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n%2 == 0 },
+			want:  Slice[int]{2, 4, 6},
+		},
+		{
+			name:  "keep odd numbers",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n%2 != 0 },
+			want:  Slice[int]{1, 3, 5},
+		},
+		{
+			name:  "keep numbers greater than 3",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n > 3 },
+			want:  Slice[int]{4, 5, 6},
+		},
+		{
+			name:  "keep none",
+			input: Slice[int]{1, 2, 3},
+			block: func(n int) bool { return false },
+			want:  Slice[int]{},
+		},
+		{
+			name:  "keep all",
+			input: Slice[int]{1, 2, 3},
+			block: func(n int) bool { return true },
+			want:  Slice[int]{1, 2, 3},
+		},
+		{
+			name:  "empty slice",
+			input: Slice[int]{},
+			block: func(n int) bool { return true },
+			want:  Slice[int]{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Reduce() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestSlice_Partition(t *testing.T) {
+func TestSliceReduce_String(t *testing.T) {
 	tests := []struct {
-		name      string
-		initial   []int
-		predicate func(int) bool
-		wantTrue  []int
-		wantFalse []int
+		name  string
+		input Slice[string]
+		block func(string) bool
+		want  Slice[string]
 	}{
 		{
-			name:      "empty slice",
-			initial:   []int{},
-			predicate: func(n int) bool { return n%2 == 0 },
-			wantTrue:  []int{},
-			wantFalse: []int{},
+			name:  "keep long strings",
+			input: Slice[string]{"a", "hello", "hi", "world", "go"},
+			block: func(s string) bool { return len(s) > 2 },
+			want:  Slice[string]{"hello", "world"},
 		},
 		{
-			name:      "partition even and odd",
-			initial:   []int{1, 2, 3, 4, 5, 6},
-			predicate: func(n int) bool { return n%2 == 0 },
-			wantTrue:  []int{2, 4, 6},
-			wantFalse: []int{1, 3, 5},
+			name:  "keep strings starting with h",
+			input: Slice[string]{"hello", "world", "hi", "golang"},
+			block: func(s string) bool { return len(s) > 0 && s[0] == 'h' },
+			want:  Slice[string]{"hello", "hi"},
 		},
 		{
-			name:      "partition greater than 3",
-			initial:   []int{1, 2, 3, 4, 5},
-			predicate: func(n int) bool { return n > 3 },
-			wantTrue:  []int{4, 5},
-			wantFalse: []int{1, 2, 3},
-		},
-		{
-			name:      "all elements satisfy predicate",
-			initial:   []int{2, 4, 6},
-			predicate: func(n int) bool { return n%2 == 0 },
-			wantTrue:  []int{2, 4, 6},
-			wantFalse: []int{},
-		},
-		{
-			name:      "no elements satisfy predicate",
-			initial:   []int{1, 3, 5},
-			predicate: func(n int) bool { return n%2 == 0 },
-			wantTrue:  []int{},
-			wantFalse: []int{1, 3, 5},
+			name:  "empty result",
+			input: Slice[string]{"a", "b", "c"},
+			block: func(s string) bool { return len(s) > 5 },
+			want:  Slice[string]{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Slice[int](tt.initial)
-			gotTrue, gotFalse := s.Partition(tt.predicate)
-
-			if !reflect.DeepEqual([]int(gotTrue), []int(tt.wantTrue)) {
-				t.Errorf("Partition() true set = %v, want %v", gotTrue, tt.wantTrue)
-			}
-
-			if !reflect.DeepEqual([]int(gotFalse), []int(tt.wantFalse)) {
-				t.Errorf("Partition() false set = %v, want %v", gotFalse, tt.wantFalse)
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func BenchmarkSlicePartition(b *testing.B) {
-	// Create a large slice to test performance
-	size := 1000
-	s := make(Slice[int], size)
-	for i := 0; i < size; i++ {
-		s[i] = i
+func TestSliceReduce_Struct(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	people := Slice[Person]{
+		{Name: "Alice", Age: 25},
+		{Name: "Bob", Age: 30},
+		{Name: "Charlie", Age: 20},
+		{Name: "Diana", Age: 35},
+	}
+
+	tests := []struct {
+		name  string
+		input Slice[Person]
+		block func(Person) bool
+		want  Slice[Person]
+	}{
+		{
+			name:  "keep adults over 25",
+			input: people,
+			block: func(p Person) bool { return p.Age > 25 },
+			want: Slice[Person]{
+				{Name: "Bob", Age: 30},
+				{Name: "Diana", Age: 35},
+			},
+		},
+		{
+			name:  "keep names starting with A",
+			input: people,
+			block: func(p Person) bool { return len(p.Name) > 0 && p.Name[0] == 'A' },
+			want: Slice[Person]{
+				{Name: "Alice", Age: 25},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceReduce_ChainedOperations(t *testing.T) {
+	// Test that Reduce works well in method chains
+	input := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	// Chain: keep evens, then keep those > 4
+	result := input.
+		Reduce(func(n int) bool { return n%2 == 0 }).
+		Reduce(func(n int) bool { return n > 4 })
+
+	want := Slice[int]{6, 8, 10}
+
+	if !reflect.DeepEqual(result, want) {
+		t.Errorf("Chained Reduce() = %v, want %v", result, want)
+	}
+}
+
+func TestSliceReduce_PreservesOrder(t *testing.T) {
+	input := Slice[int]{5, 1, 4, 2, 3}
+
+	// Keep odds - should preserve original order
+	result := input.Reduce(func(n int) bool { return n%2 != 0 })
+
+	want := Slice[int]{5, 1, 3}
+
+	if !reflect.DeepEqual(result, want) {
+		t.Errorf("Reduce() = %v, want %v (order should be preserved)", result, want)
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceRotate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    Slice[int]
+		count    int
+		expected Slice[int]
+	}{
+		{
+			name:     "rotate left by 2",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    2,
+			expected: Slice[int]{3, 4, 5, 1, 2},
+		},
+		{
+			name:     "rotate right by 2",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -2,
+			expected: Slice[int]{4, 5, 1, 2, 3},
+		},
+		{
+			name:     "rotate left by 1",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    1,
+			expected: Slice[int]{2, 3, 4, 5, 1},
+		},
+		{
+			name:     "rotate right by 1",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -1,
+			expected: Slice[int]{5, 1, 2, 3, 4},
+		},
+		{
+			name:     "rotate by 0 (no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    0,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by length (full rotation, no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    5,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by negative length (full rotation, no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -5,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by more than length",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    7, // equivalent to rotating by 2
+			expected: Slice[int]{3, 4, 5, 1, 2},
+		},
+		{
+			name:     "rotate by negative more than length",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -7, // equivalent to rotating by -2
+			expected: Slice[int]{4, 5, 1, 2, 3},
+		},
+		{
+			name:     "empty slice",
+			input:    Slice[int]{},
+			count:    3,
+			expected: Slice[int]{},
+		},
+		{
+			name:     "single element",
+			input:    Slice[int]{42},
+			count:    1,
+			expected: Slice[int]{42},
+		},
+		{
+			name:     "two elements rotate left",
+			input:    Slice[int]{1, 2},
+			count:    1,
+			expected: Slice[int]{2, 1},
+		},
+		{
+			name:     "two elements rotate right",
+			input:    Slice[int]{1, 2},
+			count:    -1,
+			expected: Slice[int]{2, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.Rotate(tt.count)
+
+			// Check length
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			// Check each element
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("at index %d: expected %v, got %v", i, tt.expected[i], result[i])
+				}
+			}
+
+			// Verify original slice is not modified
+			if len(tt.input) > 0 {
+				// Just check the first element to ensure immutability
+				firstElement := tt.input[0]
+				_ = tt.input.Rotate(tt.count)
+				if tt.input[0] != firstElement {
+					t.Errorf("original slice was modified")
+				}
+			}
+		})
+	}
+}
+
+func TestSliceRotateWithStrings(t *testing.T) {
+	input := Slice[string]{"a", "b", "c", "d", "e"}
+
+	tests := []struct {
+		name     string
+		count    int
+		expected Slice[string]
+	}{
+		{
+			name:     "rotate strings left by 2",
+			count:    2,
+			expected: Slice[string]{"c", "d", "e", "a", "b"},
+		},
+		{
+			name:     "rotate strings right by 2",
+			count:    -2,
+			expected: Slice[string]{"d", "e", "a", "b", "c"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := input.Rotate(tt.count)
+
+			if !result.IsEq(tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceSample(t *testing.T) {
+	t.Run("returns random element from non-empty slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		elem, ok := s.Sample()
+		if !ok {
+			t.Fatal("Sample should return true for non-empty slice")
+		}
+		if !s.Include(elem) {
+			t.Errorf("Sample returned element %v not in slice", elem)
+		}
+	})
+
+	t.Run("returns false for empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		elem, ok := s.Sample()
+		if ok {
+			t.Error("Sample should return false for empty slice")
+		}
+		if elem != 0 {
+			t.Errorf("Sample should return zero value for empty slice, got %v", elem)
+		}
+	})
+
+	t.Run("works with string slice", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry"}
+		elem, ok := s.Sample()
+		if !ok {
+			t.Fatal("Sample should return true for non-empty slice")
+		}
+		if !s.Include(elem) {
+			t.Errorf("Sample returned element %v not in slice", elem)
+		}
+	})
+
+	t.Run("returns different elements on multiple calls (probabilistic)", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+		seen := make(map[int]bool)
+		for i := 0; i < 50; i++ {
+			elem, _ := s.Sample()
+			seen[elem] = true
+		}
+		// With 50 samples from 10 elements, we should see at least 5 different values
+		if len(seen) < 5 {
+			t.Errorf("Sample should return varied elements, only saw %d unique values", len(seen))
+		}
+	})
+
+	t.Run("single element slice always returns that element", func(t *testing.T) {
+		s := Slice[int]{42}
+		for i := 0; i < 10; i++ {
+			elem, ok := s.Sample()
+			if !ok {
+				t.Fatal("Sample should return true for non-empty slice")
+			}
+			if elem != 42 {
+				t.Errorf("Sample should return 42, got %v", elem)
+			}
+		}
+	})
+}
+
+func TestSliceSampleN(t *testing.T) {
+	t.Run("returns n random elements", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.SampleN(3)
+		if len(result) != 3 {
+			t.Errorf("SampleN(3) should return 3 elements, got %d", len(result))
+		}
+		// All returned elements should be in original slice
+		for _, elem := range result {
+			if !s.Include(elem) {
+				t.Errorf("SampleN returned element %v not in original slice", elem)
+			}
+		}
+		// No duplicates (sampling without replacement)
+		if len(result.Unique()) != len(result) {
+			t.Error("SampleN should return unique elements (no duplicates)")
+		}
+	})
+
+	t.Run("returns empty slice for n <= 0", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3}
+		if len(s.SampleN(0)) != 0 {
+			t.Error("SampleN(0) should return empty slice")
+		}
+		if len(s.SampleN(-5)) != 0 {
+			t.Error("SampleN(-5) should return empty slice")
+		}
+	})
+
+	t.Run("returns all elements shuffled when n >= length", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3}
+		result := s.SampleN(5)
+		if len(result) != 3 {
+			t.Errorf("SampleN(5) should return all 3 elements, got %d", len(result))
+		}
+		// Should contain all original elements
+		for _, elem := range s {
+			if !result.Include(elem) {
+				t.Errorf("SampleN should include element %v", elem)
+			}
+		}
+	})
+
+	t.Run("works with empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.SampleN(3)
+		if len(result) != 0 {
+			t.Error("SampleN on empty slice should return empty slice")
+		}
+	})
+
+	t.Run("returns all elements when n equals length", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30}
+		result := s.SampleN(3)
+		if len(result) != 3 {
+			t.Errorf("SampleN(3) should return 3 elements, got %d", len(result))
+		}
+		// Should contain all original elements
+		for _, elem := range s {
+			if !result.Include(elem) {
+				t.Errorf("SampleN should include element %v", elem)
+			}
+		}
+	})
+
+	t.Run("sampling is random (probabilistic test)", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		results := make(map[int]int) // Count how often each element appears first
+
+		for i := 0; i < 100; i++ {
+			sample := s.SampleN(2)
+			if len(sample) > 0 {
+				results[sample[0]]++
+			}
+		}
+
+		// With 100 samples, each of the 5 elements should appear at least a few times
+		// (probabilistic, but with 100 samples this should almost always pass)
+		if len(results) < 3 {
+			t.Errorf("SampleN should show randomness, only saw %d different first elements", len(results))
+		}
+	})
+
+	t.Run("works with string slice", func(t *testing.T) {
+		s := Slice[string]{"red", "green", "blue", "yellow"}
+		result := s.SampleN(2)
+		if len(result) != 2 {
+			t.Errorf("SampleN(2) should return 2 elements, got %d", len(result))
+		}
+		for _, elem := range result {
+			if !s.Include(elem) {
+				t.Errorf("SampleN returned element %v not in original slice", elem)
+			}
+		}
+	})
+
+	t.Run("does not modify original slice", func(t *testing.T) {
+		original := Slice[int]{1, 2, 3, 4, 5}
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		_ = original.SampleN(3)
+		if !original.IsEq(expected) {
+			t.Error("SampleN should not modify original slice")
+		}
+	})
+}
+
+import (
+	"testing"
+)
+
+// TestSliceSelectUntil_Found tests SelectUntil when condition is met
+func TestSliceSelectUntil_Found(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5, 6}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 3
+	})
+	expected := Slice[int]{1, 2}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_NotFound tests SelectUntil when condition is never met
+func TestSliceSelectUntil_NotFound(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 10
+	})
+	// Should return the entire slice when condition is never met
+	AssertSlicesEquals(t, a, result)
+}
+
+// TestSliceSelectUntil_FirstElement tests SelectUntil when first element matches
+func TestSliceSelectUntil_FirstElement(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 1
+	})
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_LastElement tests SelectUntil when last element matches
+func TestSliceSelectUntil_LastElement(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 5
+	})
+	expected := Slice[int]{1, 2, 3, 4}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Empty tests SelectUntil on empty slice
+func TestSliceSelectUntil_Empty(t *testing.T) {
+	a := Slice[int]{}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 1
+	})
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Strings tests SelectUntil with string type
+func TestSliceSelectUntil_Strings(t *testing.T) {
+	a := Slice[string]{"apple", "banana", "cherry", "date"}
+	result := a.SelectUntil(func(e string) bool {
+		return e == "cherry"
+	})
+	expected := Slice[string]{"apple", "banana"}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_ComplexCondition tests SelectUntil with complex predicate
+func TestSliceSelectUntil_ComplexCondition(t *testing.T) {
+	a := Slice[int]{1, 3, 5, 8, 10, 12}
+	result := a.SelectUntil(func(e int) bool {
+		return e%2 == 0 // First even number
+	})
+	expected := Slice[int]{1, 3, 5}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Chaining tests SelectUntil with method chaining
+func TestSliceSelectUntil_Chaining(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8}
+	result := a.SelectUntil(func(e int) bool {
+		return e > 5
+	}).Map(func(e int) int {
+		return e * 2
+	})
+	expected := Slice[int]{2, 4, 6, 8, 10}
+	AssertSlicesEquals(t, expected, result)
+}
+
+
+func TestSliceSum(t *testing.T) {
+	t.Run("int slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := SliceSum(s)
+		expected := 15
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("float64 slice", func(t *testing.T) {
+		s := Slice[float64]{1.5, 2.5, 3.0}
+		result := SliceSum(s)
+		expected := 7.0
+		if result != expected {
+			t.Errorf("Expected %f, got %f", expected, result)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		result := SliceSum(s)
+		expected := 0
+		if result != expected {
+			t.Errorf("Expected %d for empty slice, got %d", expected, result)
+		}
+	})
+
+	t.Run("negative numbers", func(t *testing.T) {
+		s := Slice[int]{-1, -2, -3, 4, 5}
+		result := SliceSum(s)
+		expected := 3
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("uint slice", func(t *testing.T) {
+		s := Slice[uint]{1, 2, 3}
+		result := SliceSum(s)
+		var expected uint = 6
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("int64 slice", func(t *testing.T) {
+		s := Slice[int64]{100, 200, 300}
+		result := SliceSum(s)
+		var expected int64 = 600
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("float32 slice", func(t *testing.T) {
+		s := Slice[float32]{1.1, 2.2, 3.3}
+		result := SliceSum(s)
+		expected := float32(6.6)
+		// Use approximate equality for floats
+		if result < expected-0.01 || result > expected+0.01 {
+			t.Errorf("Expected approximately %f, got %f", expected, result)
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		s := Slice[int]{42}
+		result := SliceSum(s)
+		expected := 42
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("zeros", func(t *testing.T) {
+		s := Slice[int]{0, 0, 0}
+		result := SliceSum(s)
+		expected := 0
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+}
+
+import (
+	"testing"
+)
+
+func TestSliceTakeWhile(t *testing.T) {
+	t.Run("takes elements while predicate is true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		result := s.TakeWhile(func(x int) bool { return x < 4 })
+		expected := Slice[int]{1, 2, 3}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice when first element fails predicate", func(t *testing.T) {
+		s := Slice[int]{5, 6, 7, 8}
+		result := s.TakeWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns all elements when predicate always true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4}
+		result := s.TakeWhile(func(x int) bool { return x < 10 })
+		if !result.IsEq(s) {
+			t.Errorf("TakeWhile: expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice for empty input", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.TakeWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry", "date"}
+		result := s.TakeWhile(func(x string) bool { return len(x) < 6 })
+		expected := Slice[string]{"apple"}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("stops at first false predicate", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6, 3, 8, 10}
+		result := s.TakeWhile(func(x int) bool { return x%2 == 0 })
+		expected := Slice[int]{2, 4, 6}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+}
+
+func TestSliceDropWhile(t *testing.T) {
+	t.Run("drops elements while predicate is true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		result := s.DropWhile(func(x int) bool { return x < 4 })
+		expected := Slice[int]{4, 5, 6}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns original slice when first element fails predicate", func(t *testing.T) {
+		s := Slice[int]{5, 6, 7, 8}
+		result := s.DropWhile(func(x int) bool { return x < 5 })
+		if !result.IsEq(s) {
+			t.Errorf("DropWhile: expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice when predicate always true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4}
+		result := s.DropWhile(func(x int) bool { return x < 10 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice for empty input", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.DropWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry", "date"}
+		result := s.DropWhile(func(x string) bool { return len(x) < 6 })
+		expected := Slice[string]{"banana", "cherry", "date"}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("stops dropping at first false predicate", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6, 3, 8, 10}
+		result := s.DropWhile(func(x int) bool { return x%2 == 0 })
+		expected := Slice[int]{3, 8, 10}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+}
+
+func TestTakeWhileDropWhileComplement(t *testing.T) {
+	t.Run("TakeWhile and DropWhile are complementary", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8}
+		predicate := func(x int) bool { return x < 5 }
+
+		taken := s.TakeWhile(predicate)
+		dropped := s.DropWhile(predicate)
+
+		// Concatenate taken and dropped should equal original
+		combined := append(taken, dropped...)
+
+		if !combined.IsEq(s) {
+			t.Errorf("TakeWhile and DropWhile should be complementary: expected %v, got %v", s, combined)
+		}
+	})
+
+	t.Run("lengths should sum to original length", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40, 50}
+		predicate := func(x int) bool { return x <= 30 }
+
+		taken := s.TakeWhile(predicate)
+		dropped := s.DropWhile(predicate)
+
+		if taken.Len()+dropped.Len() != s.Len() {
+			t.Errorf("Lengths don't match: taken %d + dropped %d != original %d",
+				taken.Len(), dropped.Len(), s.Len())
+		}
+	})
+}
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestSlice_Tally(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		expected map[int]int
+	}{
+		{
+			name:     "empty slice",
+			slice:    Slice[int]{},
+			expected: map[int]int{},
+		},
+		{
+			name:     "single element",
+			slice:    Slice[int]{1},
+			expected: map[int]int{1: 1},
+		},
+		{
+			name:     "all unique elements",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			expected: map[int]int{1: 1, 2: 1, 3: 1, 4: 1, 5: 1},
+		},
+		{
+			name:     "all same elements",
+			slice:    Slice[int]{5, 5, 5, 5},
+			expected: map[int]int{5: 4},
+		},
+		{
+			name:     "mixed frequencies",
+			slice:    Slice[int]{1, 2, 2, 3, 3, 3},
+			expected: map[int]int{1: 1, 2: 2, 3: 3},
+		},
+		{
+			name:     "negative numbers",
+			slice:    Slice[int]{-1, -1, 0, 1, 1, 1},
+			expected: map[int]int{-1: 2, 0: 1, 1: 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.Tally()
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Tally() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSlice_TallyString(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[string]
+		expected map[string]int
+	}{
+		{
+			name:     "empty slice",
+			slice:    Slice[string]{},
+			expected: map[string]int{},
+		},
+		{
+			name:     "word frequency",
+			slice:    Slice[string]{"apple", "banana", "apple", "cherry", "banana", "apple"},
+			expected: map[string]int{"apple": 3, "banana": 2, "cherry": 1},
+		},
+		{
+			name:     "empty strings",
+			slice:    Slice[string]{"", "a", "", "b", ""},
+			expected: map[string]int{"": 3, "a": 1, "b": 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.Tally()
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Tally() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// Benchmark to ensure performance is reasonable
+func BenchmarkSlice_Tally(b *testing.B) {
+	// Create a slice with 1000 elements, mixed frequencies
+	slice := make(Slice[int], 1000)
+	for i := range slice {
+		slice[i] = i % 100 // 100 unique values, each appearing 10 times
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		s.Partition(func(n int) bool { return n%2 == 0 })
+		_ = slice.Tally()
 	}
 }
 
-func TestSliceDeleteAtBoundsCheck(t *testing.T) {
+// Test that Tally doesn't modify the original slice
+func TestSlice_TallyImmutable(t *testing.T) {
+	original := Slice[int]{1, 2, 3, 2, 1}
+	originalCopy := make(Slice[int], len(original))
+	copy(originalCopy, original)
+
+	_ = original.Tally()
+
+	if !reflect.DeepEqual(original, originalCopy) {
+		t.Errorf("Tally() modified the original slice: got %v, expected %v", original, originalCopy)
+	}
+}
+
+// Test integration with other Slice methods
+func TestSlice_TallyWithOtherMethods(t *testing.T) {
+	// Example: count frequencies after filtering
+	slice := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	evenOnly := slice.KeepIf(func(x int) bool { return x%2 == 0 })
+	tally := evenOnly.Tally()
+
+	expected := map[int]int{2: 1, 4: 1, 6: 1, 8: 1, 10: 1}
+	if !reflect.DeepEqual(tally, expected) {
+		t.Errorf("Tally() after KeepIf() = %v, expected %v", tally, expected)
+	}
+
+	// Example: count frequencies after mapping
+	slice2 := Slice[int]{1, 2, 3, 4, 5}
+	doubled := slice2.Map(func(x int) int { return x * 2 })
+	tally2 := doubled.Tally()
+
+	expected2 := map[int]int{2: 1, 4: 1, 6: 1, 8: 1, 10: 1}
+	if !reflect.DeepEqual(tally2, expected2) {
+		t.Errorf("Tally() after Map() = %v, expected %v", tally2, expected2)
+	}
+}
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestZip(t *testing.T) {
+	t.Run("equal length slices", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[string]{"a", "b", "c"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+			{3, "c"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("first slice shorter", func(t *testing.T) {
+		a := Slice[int]{1, 2}
+		b := Slice[string]{"a", "b", "c", "d"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("second slice shorter", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3, 4, 5}
+		b := Slice[string]{"a", "b"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("first slice empty", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[string]{"a", "b", "c"}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("second slice empty", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[string]{}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("both slices empty", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[string]{}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("same type slices", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[int]{10, 20, 30}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, 10},
+			{2, 20},
+			{3, 30},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("different comparable types", func(t *testing.T) {
+		a := Slice[float64]{1.5, 2.5, 3.5}
+		b := Slice[bool]{true, false, true}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1.5, true},
+			{2.5, false},
+			{3.5, true},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("single element slices", func(t *testing.T) {
+		a := Slice[int]{42}
+		b := Slice[string]{"answer"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{42, "answer"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+}
+
+// Benchmark tests
+func BenchmarkZipEqualLength(b *testing.B) {
+	a := make(Slice[int], 1000)
+	s := make(Slice[string], 1000)
+	for i := range a {
+		a[i] = i
+		s[i] = "test"
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Zip(a, s)
+	}
+}
+
+func BenchmarkZipDifferentLength(b *testing.B) {
+	a := make(Slice[int], 100)
+	s := make(Slice[string], 1000)
+	for i := range a {
+		a[i] = i
+	}
+	for i := range s {
+		s[i] = "test"
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Zip(a, s)
+	}
+}
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestSlice_ChunkWhile(t *testing.T) {
 	tests := []struct {
-		name     string
-		slice    Slice[int]
-		index    int
-		expected Slice[int]
+		name      string
+		slice     Slice[int]
+		predicate func(int, int) bool
+		expected  []Slice[int]
 	}{
 		{
-			name:     "negative index",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    -1,
-			expected: Slice[int]{1, 2, 3, 4},
+			name:      "consecutive numbers",
+			slice:     Slice[int]{1, 2, 4, 5, 7, 9},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2}, {4, 5}, {7}, {9}},
 		},
 		{
-			name:     "index equals length",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    4,
-			expected: Slice[int]{1, 2, 3, 4},
+			name:      "all consecutive",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2, 3, 4, 5}},
 		},
 		{
-			name:     "index greater than length",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    10,
-			expected: Slice[int]{1, 2, 3, 4},
+			name:      "none consecutive",
+			slice:     Slice[int]{1, 3, 5, 7, 9},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1}, {3}, {5}, {7}, {9}},
 		},
 		{
-			name:     "empty slice with index 0",
-			slice:    Slice[int]{},
-			index:    0,
-			expected: Slice[int]{},
+			name:      "empty slice",
+			slice:     Slice[int]{},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{},
 		},
 		{
-			name:     "valid index at start",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    0,
-			expected: Slice[int]{2, 3, 4},
+			name:      "single element",
+			slice:     Slice[int]{42},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{42}},
 		},
 		{
-			name:     "valid index at end",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    3,
-			expected: Slice[int]{1, 2, 3},
+			name:      "two elements - match",
+			slice:     Slice[int]{1, 2},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1, 2}},
 		},
 		{
-			name:     "valid index in middle",
-			slice:    Slice[int]{1, 2, 3, 4},
-			index:    1,
-			expected: Slice[int]{1, 3, 4},
+			name:      "two elements - no match",
+			slice:     Slice[int]{1, 5},
+			predicate: func(a, b int) bool { return b-a == 1 },
+			expected:  []Slice[int]{{1}, {5}},
 		},
 		{
-			name:     "single element with valid index",
-			slice:    Slice[int]{42},
-			index:    0,
-			expected: Slice[int]{},
+			name:      "same values",
+			slice:     Slice[int]{3, 3, 3, 5, 5, 7},
+			predicate: func(a, b int) bool { return a == b },
+			expected:  []Slice[int]{{3, 3, 3}, {5, 5}, {7}},
 		},
 		{
-			name:     "single element with out of bounds index",
-			slice:    Slice[int]{42},
-			index:    1,
-			expected: Slice[int]{42},
+			name:      "ascending values",
+			slice:     Slice[int]{1, 3, 2, 5, 4, 7, 6},
+			predicate: func(a, b int) bool { return a < b },
+			expected:  []Slice[int]{{1, 3}, {2, 5}, {4, 7}, {6}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.slice.DeleteAt(tt.index)
-			AssertSlicesEquals(t, tt.expected, result)
+			result := tt.slice.ChunkWhile(tt.predicate)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("ChunkWhile() = %v, expected %v", result, tt.expected)
+			}
 		})
+	}
+}
+
+func TestSlice_ChunkWhile_Strings(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     Slice[string]
+		predicate func(string, string) bool
+		expected  []Slice[string]
+	}{
+		{
+			name:  "same length strings",
+			slice: Slice[string]{"a", "b", "cc", "dd", "eee", "f"},
+			predicate: func(a, b string) bool {
+				return len(a) == len(b)
+			},
+			expected: []Slice[string]{{"a", "b"}, {"cc", "dd"}, {"eee"}, {"f"}},
+		},
+		{
+			name:  "alphabetical order",
+			slice: Slice[string]{"apple", "banana", "cherry", "ant", "bear"},
+			predicate: func(a, b string) bool {
+				return a < b
+			},
+			expected: []Slice[string]{{"apple", "banana", "cherry"}, {"ant", "bear"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.ChunkWhile(tt.predicate)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("ChunkWhile() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceCompact(t *testing.T) {
+	t.Run("removes zero values from int slice", func(t *testing.T) {
+		s := Slice[int]{1, 0, 2, 0, 3, 0}
+		result := s.Compact()
+		expected := Slice[int]{1, 2, 3}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes empty strings from string slice", func(t *testing.T) {
+		s := Slice[string]{"hello", "", "world", "", "!"}
+		result := s.Compact()
+		expected := Slice[string]{"hello", "world", "!"}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes false from bool slice", func(t *testing.T) {
+		s := Slice[bool]{true, false, true, false, true}
+		result := s.Compact()
+		expected := Slice[bool]{true, true, true}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice when all values are zero", func(t *testing.T) {
+		s := Slice[int]{0, 0, 0, 0}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("returns same slice when no zero values", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Compact()
+		if !result.IsEq(s) {
+			t.Errorf("Expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice when input is empty", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("works with float64", func(t *testing.T) {
+		s := Slice[float64]{1.5, 0.0, 2.5, 0.0, 3.5}
+		result := s.Compact()
+		expected := Slice[float64]{1.5, 2.5, 3.5}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("removes zero runes from rune slice", func(t *testing.T) {
+		s := Slice[rune]{'a', 0, 'b', 0, 'c'}
+		result := s.Compact()
+		expected := Slice[rune]{'a', 'b', 'c'}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("preserves order of non-zero elements", func(t *testing.T) {
+		s := Slice[int]{5, 0, 4, 0, 3, 0, 2, 0, 1}
+		result := s.Compact()
+		expected := Slice[int]{5, 4, 3, 2, 1}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("single zero value returns empty slice", func(t *testing.T) {
+		s := Slice[int]{0}
+		result := s.Compact()
+		if len(result) != 0 {
+			t.Errorf("Expected empty slice, got %v", result)
+		}
+	})
+
+	t.Run("single non-zero value returns same value", func(t *testing.T) {
+		s := Slice[int]{42}
+		result := s.Compact()
+		expected := Slice[int]{42}
+		if !result.IsEq(expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+}
+
+
+func TestSliceNone(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     Slice[int]
+		predicate func(int) bool
+		expected  bool
+	}{
+		{
+			name:      "empty slice",
+			slice:     Slice[int]{},
+			predicate: func(x int) bool { return x > 0 },
+			expected:  true, // None returns true for empty slices
+		},
+		{
+			name:      "no elements satisfy predicate",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(x int) bool { return x > 10 },
+			expected:  true,
+		},
+		{
+			name:      "some elements satisfy predicate",
+			slice:     Slice[int]{1, 2, 3, 4, 5},
+			predicate: func(x int) bool { return x == 3 },
+			expected:  false,
+		},
+		{
+			name:      "all elements satisfy predicate",
+			slice:     Slice[int]{2, 4, 6, 8},
+			predicate: func(x int) bool { return x%2 == 0 },
+			expected:  false,
+		},
+		{
+			name:      "single element satisfies",
+			slice:     Slice[int]{5},
+			predicate: func(x int) bool { return x == 5 },
+			expected:  false,
+		},
+		{
+			name:      "single element does not satisfy",
+			slice:     Slice[int]{5},
+			predicate: func(x int) bool { return x == 10 },
+			expected:  true,
+		},
+		{
+			name:      "negative numbers - none negative",
+			slice:     Slice[int]{1, 2, 3, 4},
+			predicate: func(x int) bool { return x < 0 },
+			expected:  true,
+		},
+		{
+			name:      "negative numbers - has negative",
+			slice:     Slice[int]{-1, 2, 3, 4},
+			predicate: func(x int) bool { return x < 0 },
+			expected:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.None(tt.predicate)
+			if result != tt.expected {
+				t.Errorf("None() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSliceFind(t *testing.T) {
+	tests := []struct {
+		name          string
+		slice         Slice[int]
+		predicate     func(int) bool
+		expectedValue int
+		expectedFound bool
+	}{
+		{
+			name:          "empty slice",
+			slice:         Slice[int]{},
+			predicate:     func(x int) bool { return x > 0 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+		{
+			name:          "find first even number",
+			slice:         Slice[int]{1, 3, 4, 5, 6},
+			predicate:     func(x int) bool { return x%2 == 0 },
+			expectedValue: 4,
+			expectedFound: true,
+		},
+		{
+			name:          "find first odd number",
+			slice:         Slice[int]{2, 4, 5, 6, 7},
+			predicate:     func(x int) bool { return x%2 != 0 },
+			expectedValue: 5,
+			expectedFound: true,
+		},
+		{
+			name:          "no element satisfies predicate",
+			slice:         Slice[int]{1, 2, 3, 4, 5},
+			predicate:     func(x int) bool { return x > 10 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+		{
+			name:          "first element satisfies",
+			slice:         Slice[int]{10, 2, 3, 4, 5},
+			predicate:     func(x int) bool { return x > 5 },
+			expectedValue: 10,
+			expectedFound: true,
+		},
+		{
+			name:          "last element satisfies",
+			slice:         Slice[int]{1, 2, 3, 4, 10},
+			predicate:     func(x int) bool { return x > 5 },
+			expectedValue: 10,
+			expectedFound: true,
+		},
+		{
+			name:          "multiple elements satisfy - returns first",
+			slice:         Slice[int]{1, 5, 8, 10, 12},
+			predicate:     func(x int) bool { return x > 4 },
+			expectedValue: 5,
+			expectedFound: true,
+		},
+		{
+			name:          "single element satisfies",
+			slice:         Slice[int]{42},
+			predicate:     func(x int) bool { return x == 42 },
+			expectedValue: 42,
+			expectedFound: true,
+		},
+		{
+			name:          "single element does not satisfy",
+			slice:         Slice[int]{42},
+			predicate:     func(x int) bool { return x == 10 },
+			expectedValue: 0,
+			expectedFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, found := tt.slice.Find(tt.predicate)
+			if found != tt.expectedFound {
+				t.Errorf("Find() found = %v, expected %v", found, tt.expectedFound)
+			}
+			if value != tt.expectedValue {
+				t.Errorf("Find() value = %v, expected %v", value, tt.expectedValue)
+			}
+		})
+	}
+}
+
+func TestSliceFindString(t *testing.T) {
+	tests := []struct {
+		name          string
+		slice         Slice[string]
+		predicate     func(string) bool
+		expectedValue string
+		expectedFound bool
+	}{
+		{
+			name:          "find string starting with 'h'",
+			slice:         Slice[string]{"apple", "banana", "hello", "world"},
+			predicate:     func(s string) bool { return len(s) > 0 && s[0] == 'h' },
+			expectedValue: "hello",
+			expectedFound: true,
+		},
+		{
+			name:          "find string with length > 6",
+			slice:         Slice[string]{"cat", "dog", "elephant", "fox"},
+			predicate:     func(s string) bool { return len(s) > 6 },
+			expectedValue: "elephant",
+			expectedFound: true,
+		},
+		{
+			name:          "no string matches",
+			slice:         Slice[string]{"cat", "dog", "fox"},
+			predicate:     func(s string) bool { return len(s) > 10 },
+			expectedValue: "",
+			expectedFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, found := tt.slice.Find(tt.predicate)
+			if found != tt.expectedFound {
+				t.Errorf("Find() found = %v, expected %v", found, tt.expectedFound)
+			}
+			if value != tt.expectedValue {
+				t.Errorf("Find() value = %q, expected %q", value, tt.expectedValue)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestFlatten(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    [][]int
+		expected []int
+	}{
+		{
+			name:     "basic flatten",
+			input:    [][]int{{1, 2}, {3, 4}, {5}},
+			expected: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "empty nested slices",
+			input:    [][]int{{}, {1, 2}, {}, {3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "single nested slice",
+			input:    [][]int{{1, 2, 3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "empty outer slice",
+			input:    [][]int{},
+			expected: []int{},
+		},
+		{
+			name:     "all empty nested slices",
+			input:    [][]int{{}, {}, {}},
+			expected: []int{},
+		},
+		{
+			name:     "single elements in nested slices",
+			input:    [][]int{{1}, {2}, {3}},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "varying lengths",
+			input:    [][]int{{1}, {2, 3, 4}, {5, 6}},
+			expected: []int{1, 2, 3, 4, 5, 6},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Flatten(tt.input)
+			if !Slice[int](result).IsEq(Slice[int](tt.expected)) {
+				t.Errorf("Flatten() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFlattenStrings(t *testing.T) {
+	input := [][]string{
+		{"hello", "world"},
+		{"foo", "bar"},
+		{"baz"},
+	}
+	expected := []string{"hello", "world", "foo", "bar", "baz"}
+	result := Flatten(input)
+
+	if !Slice[string](result).IsEq(Slice[string](expected)) {
+		t.Errorf("Flatten() = %v, want %v", result, expected)
+	}
+}
+
+func TestFlattenPreservesOrder(t *testing.T) {
+	input := [][]int{
+		{9, 8, 7},
+		{6, 5},
+		{4, 3, 2, 1},
+	}
+	expected := []int{9, 8, 7, 6, 5, 4, 3, 2, 1}
+	result := Flatten(input)
+
+	if !Slice[int](result).IsEq(Slice[int](expected)) {
+		t.Errorf("Flatten() should preserve order: got %v, want %v", result, expected)
+	}
+}
+
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestSliceReduce_Basic(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Slice[int]
+		block func(int) bool
+		want  Slice[int]
+	}{
+		{
+			name:  "keep even numbers",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n%2 == 0 },
+			want:  Slice[int]{2, 4, 6},
+		},
+		{
+			name:  "keep odd numbers",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n%2 != 0 },
+			want:  Slice[int]{1, 3, 5},
+		},
+		{
+			name:  "keep numbers greater than 3",
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
+			block: func(n int) bool { return n > 3 },
+			want:  Slice[int]{4, 5, 6},
+		},
+		{
+			name:  "keep none",
+			input: Slice[int]{1, 2, 3},
+			block: func(n int) bool { return false },
+			want:  Slice[int]{},
+		},
+		{
+			name:  "keep all",
+			input: Slice[int]{1, 2, 3},
+			block: func(n int) bool { return true },
+			want:  Slice[int]{1, 2, 3},
+		},
+		{
+			name:  "empty slice",
+			input: Slice[int]{},
+			block: func(n int) bool { return true },
+			want:  Slice[int]{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceReduce_String(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Slice[string]
+		block func(string) bool
+		want  Slice[string]
+	}{
+		{
+			name:  "keep long strings",
+			input: Slice[string]{"a", "hello", "hi", "world", "go"},
+			block: func(s string) bool { return len(s) > 2 },
+			want:  Slice[string]{"hello", "world"},
+		},
+		{
+			name:  "keep strings starting with h",
+			input: Slice[string]{"hello", "world", "hi", "golang"},
+			block: func(s string) bool { return len(s) > 0 && s[0] == 'h' },
+			want:  Slice[string]{"hello", "hi"},
+		},
+		{
+			name:  "empty result",
+			input: Slice[string]{"a", "b", "c"},
+			block: func(s string) bool { return len(s) > 5 },
+			want:  Slice[string]{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceReduce_Struct(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	people := Slice[Person]{
+		{Name: "Alice", Age: 25},
+		{Name: "Bob", Age: 30},
+		{Name: "Charlie", Age: 20},
+		{Name: "Diana", Age: 35},
+	}
+
+	tests := []struct {
+		name  string
+		input Slice[Person]
+		block func(Person) bool
+		want  Slice[Person]
+	}{
+		{
+			name:  "keep adults over 25",
+			input: people,
+			block: func(p Person) bool { return p.Age > 25 },
+			want: Slice[Person]{
+				{Name: "Bob", Age: 30},
+				{Name: "Diana", Age: 35},
+			},
+		},
+		{
+			name:  "keep names starting with A",
+			input: people,
+			block: func(p Person) bool { return len(p.Name) > 0 && p.Name[0] == 'A' },
+			want: Slice[Person]{
+				{Name: "Alice", Age: 25},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reduce(tt.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reduce() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceReduce_ChainedOperations(t *testing.T) {
+	// Test that Reduce works well in method chains
+	input := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	// Chain: keep evens, then keep those > 4
+	result := input.
+		Reduce(func(n int) bool { return n%2 == 0 }).
+		Reduce(func(n int) bool { return n > 4 })
+
+	want := Slice[int]{6, 8, 10}
+
+	if !reflect.DeepEqual(result, want) {
+		t.Errorf("Chained Reduce() = %v, want %v", result, want)
+	}
+}
+
+func TestSliceReduce_PreservesOrder(t *testing.T) {
+	input := Slice[int]{5, 1, 4, 2, 3}
+
+	// Keep odds - should preserve original order
+	result := input.Reduce(func(n int) bool { return n%2 != 0 })
+
+	want := Slice[int]{5, 1, 3}
+
+	if !reflect.DeepEqual(result, want) {
+		t.Errorf("Reduce() = %v, want %v (order should be preserved)", result, want)
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceRotate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    Slice[int]
+		count    int
+		expected Slice[int]
+	}{
+		{
+			name:     "rotate left by 2",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    2,
+			expected: Slice[int]{3, 4, 5, 1, 2},
+		},
+		{
+			name:     "rotate right by 2",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -2,
+			expected: Slice[int]{4, 5, 1, 2, 3},
+		},
+		{
+			name:     "rotate left by 1",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    1,
+			expected: Slice[int]{2, 3, 4, 5, 1},
+		},
+		{
+			name:     "rotate right by 1",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -1,
+			expected: Slice[int]{5, 1, 2, 3, 4},
+		},
+		{
+			name:     "rotate by 0 (no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    0,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by length (full rotation, no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    5,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by negative length (full rotation, no change)",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -5,
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "rotate by more than length",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    7, // equivalent to rotating by 2
+			expected: Slice[int]{3, 4, 5, 1, 2},
+		},
+		{
+			name:     "rotate by negative more than length",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			count:    -7, // equivalent to rotating by -2
+			expected: Slice[int]{4, 5, 1, 2, 3},
+		},
+		{
+			name:     "empty slice",
+			input:    Slice[int]{},
+			count:    3,
+			expected: Slice[int]{},
+		},
+		{
+			name:     "single element",
+			input:    Slice[int]{42},
+			count:    1,
+			expected: Slice[int]{42},
+		},
+		{
+			name:     "two elements rotate left",
+			input:    Slice[int]{1, 2},
+			count:    1,
+			expected: Slice[int]{2, 1},
+		},
+		{
+			name:     "two elements rotate right",
+			input:    Slice[int]{1, 2},
+			count:    -1,
+			expected: Slice[int]{2, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.Rotate(tt.count)
+
+			// Check length
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			// Check each element
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("at index %d: expected %v, got %v", i, tt.expected[i], result[i])
+				}
+			}
+
+			// Verify original slice is not modified
+			if len(tt.input) > 0 {
+				// Just check the first element to ensure immutability
+				firstElement := tt.input[0]
+				_ = tt.input.Rotate(tt.count)
+				if tt.input[0] != firstElement {
+					t.Errorf("original slice was modified")
+				}
+			}
+		})
+	}
+}
+
+func TestSliceRotateWithStrings(t *testing.T) {
+	input := Slice[string]{"a", "b", "c", "d", "e"}
+
+	tests := []struct {
+		name     string
+		count    int
+		expected Slice[string]
+	}{
+		{
+			name:     "rotate strings left by 2",
+			count:    2,
+			expected: Slice[string]{"c", "d", "e", "a", "b"},
+		},
+		{
+			name:     "rotate strings right by 2",
+			count:    -2,
+			expected: Slice[string]{"d", "e", "a", "b", "c"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := input.Rotate(tt.count)
+
+			if !result.IsEq(tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+import (
+	"testing"
+)
+
+func TestSliceSample(t *testing.T) {
+	t.Run("returns random element from non-empty slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		elem, ok := s.Sample()
+		if !ok {
+			t.Fatal("Sample should return true for non-empty slice")
+		}
+		if !s.Include(elem) {
+			t.Errorf("Sample returned element %v not in slice", elem)
+		}
+	})
+
+	t.Run("returns false for empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		elem, ok := s.Sample()
+		if ok {
+			t.Error("Sample should return false for empty slice")
+		}
+		if elem != 0 {
+			t.Errorf("Sample should return zero value for empty slice, got %v", elem)
+		}
+	})
+
+	t.Run("works with string slice", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry"}
+		elem, ok := s.Sample()
+		if !ok {
+			t.Fatal("Sample should return true for non-empty slice")
+		}
+		if !s.Include(elem) {
+			t.Errorf("Sample returned element %v not in slice", elem)
+		}
+	})
+
+	t.Run("returns different elements on multiple calls (probabilistic)", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+		seen := make(map[int]bool)
+		for i := 0; i < 50; i++ {
+			elem, _ := s.Sample()
+			seen[elem] = true
+		}
+		// With 50 samples from 10 elements, we should see at least 5 different values
+		if len(seen) < 5 {
+			t.Errorf("Sample should return varied elements, only saw %d unique values", len(seen))
+		}
+	})
+
+	t.Run("single element slice always returns that element", func(t *testing.T) {
+		s := Slice[int]{42}
+		for i := 0; i < 10; i++ {
+			elem, ok := s.Sample()
+			if !ok {
+				t.Fatal("Sample should return true for non-empty slice")
+			}
+			if elem != 42 {
+				t.Errorf("Sample should return 42, got %v", elem)
+			}
+		}
+	})
+}
+
+func TestSliceSampleN(t *testing.T) {
+	t.Run("returns n random elements", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.SampleN(3)
+		if len(result) != 3 {
+			t.Errorf("SampleN(3) should return 3 elements, got %d", len(result))
+		}
+		// All returned elements should be in original slice
+		for _, elem := range result {
+			if !s.Include(elem) {
+				t.Errorf("SampleN returned element %v not in original slice", elem)
+			}
+		}
+		// No duplicates (sampling without replacement)
+		if len(result.Unique()) != len(result) {
+			t.Error("SampleN should return unique elements (no duplicates)")
+		}
+	})
+
+	t.Run("returns empty slice for n <= 0", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3}
+		if len(s.SampleN(0)) != 0 {
+			t.Error("SampleN(0) should return empty slice")
+		}
+		if len(s.SampleN(-5)) != 0 {
+			t.Error("SampleN(-5) should return empty slice")
+		}
+	})
+
+	t.Run("returns all elements shuffled when n >= length", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3}
+		result := s.SampleN(5)
+		if len(result) != 3 {
+			t.Errorf("SampleN(5) should return all 3 elements, got %d", len(result))
+		}
+		// Should contain all original elements
+		for _, elem := range s {
+			if !result.Include(elem) {
+				t.Errorf("SampleN should include element %v", elem)
+			}
+		}
+	})
+
+	t.Run("works with empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.SampleN(3)
+		if len(result) != 0 {
+			t.Error("SampleN on empty slice should return empty slice")
+		}
+	})
+
+	t.Run("returns all elements when n equals length", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30}
+		result := s.SampleN(3)
+		if len(result) != 3 {
+			t.Errorf("SampleN(3) should return 3 elements, got %d", len(result))
+		}
+		// Should contain all original elements
+		for _, elem := range s {
+			if !result.Include(elem) {
+				t.Errorf("SampleN should include element %v", elem)
+			}
+		}
+	})
+
+	t.Run("sampling is random (probabilistic test)", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		results := make(map[int]int) // Count how often each element appears first
+
+		for i := 0; i < 100; i++ {
+			sample := s.SampleN(2)
+			if len(sample) > 0 {
+				results[sample[0]]++
+			}
+		}
+
+		// With 100 samples, each of the 5 elements should appear at least a few times
+		// (probabilistic, but with 100 samples this should almost always pass)
+		if len(results) < 3 {
+			t.Errorf("SampleN should show randomness, only saw %d different first elements", len(results))
+		}
+	})
+
+	t.Run("works with string slice", func(t *testing.T) {
+		s := Slice[string]{"red", "green", "blue", "yellow"}
+		result := s.SampleN(2)
+		if len(result) != 2 {
+			t.Errorf("SampleN(2) should return 2 elements, got %d", len(result))
+		}
+		for _, elem := range result {
+			if !s.Include(elem) {
+				t.Errorf("SampleN returned element %v not in original slice", elem)
+			}
+		}
+	})
+
+	t.Run("does not modify original slice", func(t *testing.T) {
+		original := Slice[int]{1, 2, 3, 4, 5}
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		_ = original.SampleN(3)
+		if !original.IsEq(expected) {
+			t.Error("SampleN should not modify original slice")
+		}
+	})
+}
+
+import (
+	"testing"
+)
+
+// TestSliceSelectUntil_Found tests SelectUntil when condition is met
+func TestSliceSelectUntil_Found(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5, 6}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 3
+	})
+	expected := Slice[int]{1, 2}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_NotFound tests SelectUntil when condition is never met
+func TestSliceSelectUntil_NotFound(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 10
+	})
+	// Should return the entire slice when condition is never met
+	AssertSlicesEquals(t, a, result)
+}
+
+// TestSliceSelectUntil_FirstElement tests SelectUntil when first element matches
+func TestSliceSelectUntil_FirstElement(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 1
+	})
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_LastElement tests SelectUntil when last element matches
+func TestSliceSelectUntil_LastElement(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 5
+	})
+	expected := Slice[int]{1, 2, 3, 4}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Empty tests SelectUntil on empty slice
+func TestSliceSelectUntil_Empty(t *testing.T) {
+	a := Slice[int]{}
+	result := a.SelectUntil(func(e int) bool {
+		return e == 1
+	})
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Strings tests SelectUntil with string type
+func TestSliceSelectUntil_Strings(t *testing.T) {
+	a := Slice[string]{"apple", "banana", "cherry", "date"}
+	result := a.SelectUntil(func(e string) bool {
+		return e == "cherry"
+	})
+	expected := Slice[string]{"apple", "banana"}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_ComplexCondition tests SelectUntil with complex predicate
+func TestSliceSelectUntil_ComplexCondition(t *testing.T) {
+	a := Slice[int]{1, 3, 5, 8, 10, 12}
+	result := a.SelectUntil(func(e int) bool {
+		return e%2 == 0 // First even number
+	})
+	expected := Slice[int]{1, 3, 5}
+	AssertSlicesEquals(t, expected, result)
+}
+
+// TestSliceSelectUntil_Chaining tests SelectUntil with method chaining
+func TestSliceSelectUntil_Chaining(t *testing.T) {
+	a := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8}
+	result := a.SelectUntil(func(e int) bool {
+		return e > 5
+	}).Map(func(e int) int {
+		return e * 2
+	})
+	expected := Slice[int]{2, 4, 6, 8, 10}
+	AssertSlicesEquals(t, expected, result)
+}
+
+
+func TestSliceSum(t *testing.T) {
+	t.Run("int slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := SliceSum(s)
+		expected := 15
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("float64 slice", func(t *testing.T) {
+		s := Slice[float64]{1.5, 2.5, 3.0}
+		result := SliceSum(s)
+		expected := 7.0
+		if result != expected {
+			t.Errorf("Expected %f, got %f", expected, result)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		result := SliceSum(s)
+		expected := 0
+		if result != expected {
+			t.Errorf("Expected %d for empty slice, got %d", expected, result)
+		}
+	})
+
+	t.Run("negative numbers", func(t *testing.T) {
+		s := Slice[int]{-1, -2, -3, 4, 5}
+		result := SliceSum(s)
+		expected := 3
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("uint slice", func(t *testing.T) {
+		s := Slice[uint]{1, 2, 3}
+		result := SliceSum(s)
+		var expected uint = 6
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("int64 slice", func(t *testing.T) {
+		s := Slice[int64]{100, 200, 300}
+		result := SliceSum(s)
+		var expected int64 = 600
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("float32 slice", func(t *testing.T) {
+		s := Slice[float32]{1.1, 2.2, 3.3}
+		result := SliceSum(s)
+		expected := float32(6.6)
+		// Use approximate equality for floats
+		if result < expected-0.01 || result > expected+0.01 {
+			t.Errorf("Expected approximately %f, got %f", expected, result)
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		s := Slice[int]{42}
+		result := SliceSum(s)
+		expected := 42
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+
+	t.Run("zeros", func(t *testing.T) {
+		s := Slice[int]{0, 0, 0}
+		result := SliceSum(s)
+		expected := 0
+		if result != expected {
+			t.Errorf("Expected %d, got %d", expected, result)
+		}
+	})
+}
+
+import (
+	"testing"
+)
+
+func TestSliceTakeWhile(t *testing.T) {
+	t.Run("takes elements while predicate is true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		result := s.TakeWhile(func(x int) bool { return x < 4 })
+		expected := Slice[int]{1, 2, 3}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice when first element fails predicate", func(t *testing.T) {
+		s := Slice[int]{5, 6, 7, 8}
+		result := s.TakeWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns all elements when predicate always true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4}
+		result := s.TakeWhile(func(x int) bool { return x < 10 })
+		if !result.IsEq(s) {
+			t.Errorf("TakeWhile: expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice for empty input", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.TakeWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry", "date"}
+		result := s.TakeWhile(func(x string) bool { return len(x) < 6 })
+		expected := Slice[string]{"apple"}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("stops at first false predicate", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6, 3, 8, 10}
+		result := s.TakeWhile(func(x int) bool { return x%2 == 0 })
+		expected := Slice[int]{2, 4, 6}
+		if !result.IsEq(expected) {
+			t.Errorf("TakeWhile: expected %v, got %v", expected, result)
+		}
+	})
+}
+
+func TestSliceDropWhile(t *testing.T) {
+	t.Run("drops elements while predicate is true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		result := s.DropWhile(func(x int) bool { return x < 4 })
+		expected := Slice[int]{4, 5, 6}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns original slice when first element fails predicate", func(t *testing.T) {
+		s := Slice[int]{5, 6, 7, 8}
+		result := s.DropWhile(func(x int) bool { return x < 5 })
+		if !result.IsEq(s) {
+			t.Errorf("DropWhile: expected %v, got %v", s, result)
+		}
+	})
+
+	t.Run("returns empty slice when predicate always true", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4}
+		result := s.DropWhile(func(x int) bool { return x < 10 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("returns empty slice for empty input", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.DropWhile(func(x int) bool { return x < 5 })
+		expected := Slice[int]{}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry", "date"}
+		result := s.DropWhile(func(x string) bool { return len(x) < 6 })
+		expected := Slice[string]{"banana", "cherry", "date"}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("stops dropping at first false predicate", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6, 3, 8, 10}
+		result := s.DropWhile(func(x int) bool { return x%2 == 0 })
+		expected := Slice[int]{3, 8, 10}
+		if !result.IsEq(expected) {
+			t.Errorf("DropWhile: expected %v, got %v", expected, result)
+		}
+	})
+}
+
+func TestTakeWhileDropWhileComplement(t *testing.T) {
+	t.Run("TakeWhile and DropWhile are complementary", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8}
+		predicate := func(x int) bool { return x < 5 }
+
+		taken := s.TakeWhile(predicate)
+		dropped := s.DropWhile(predicate)
+
+		// Concatenate taken and dropped should equal original
+		combined := append(taken, dropped...)
+
+		if !combined.IsEq(s) {
+			t.Errorf("TakeWhile and DropWhile should be complementary: expected %v, got %v", s, combined)
+		}
+	})
+
+	t.Run("lengths should sum to original length", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40, 50}
+		predicate := func(x int) bool { return x <= 30 }
+
+		taken := s.TakeWhile(predicate)
+		dropped := s.DropWhile(predicate)
+
+		if taken.Len()+dropped.Len() != s.Len() {
+			t.Errorf("Lengths don't match: taken %d + dropped %d != original %d",
+				taken.Len(), dropped.Len(), s.Len())
+		}
+	})
+}
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestSlice_Tally(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		expected map[int]int
+	}{
+		{
+			name:     "empty slice",
+			slice:    Slice[int]{},
+			expected: map[int]int{},
+		},
+		{
+			name:     "single element",
+			slice:    Slice[int]{1},
+			expected: map[int]int{1: 1},
+		},
+		{
+			name:     "all unique elements",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			expected: map[int]int{1: 1, 2: 1, 3: 1, 4: 1, 5: 1},
+		},
+		{
+			name:     "all same elements",
+			slice:    Slice[int]{5, 5, 5, 5},
+			expected: map[int]int{5: 4},
+		},
+		{
+			name:     "mixed frequencies",
+			slice:    Slice[int]{1, 2, 2, 3, 3, 3},
+			expected: map[int]int{1: 1, 2: 2, 3: 3},
+		},
+		{
+			name:     "negative numbers",
+			slice:    Slice[int]{-1, -1, 0, 1, 1, 1},
+			expected: map[int]int{-1: 2, 0: 1, 1: 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.Tally()
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Tally() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSlice_TallyString(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[string]
+		expected map[string]int
+	}{
+		{
+			name:     "empty slice",
+			slice:    Slice[string]{},
+			expected: map[string]int{},
+		},
+		{
+			name:     "word frequency",
+			slice:    Slice[string]{"apple", "banana", "apple", "cherry", "banana", "apple"},
+			expected: map[string]int{"apple": 3, "banana": 2, "cherry": 1},
+		},
+		{
+			name:     "empty strings",
+			slice:    Slice[string]{"", "a", "", "b", ""},
+			expected: map[string]int{"": 3, "a": 1, "b": 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.Tally()
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Tally() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// Benchmark to ensure performance is reasonable
+func BenchmarkSlice_Tally(b *testing.B) {
+	// Create a slice with 1000 elements, mixed frequencies
+	slice := make(Slice[int], 1000)
+	for i := range slice {
+		slice[i] = i % 100 // 100 unique values, each appearing 10 times
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = slice.Tally()
+	}
+}
+
+// Test that Tally doesn't modify the original slice
+func TestSlice_TallyImmutable(t *testing.T) {
+	original := Slice[int]{1, 2, 3, 2, 1}
+	originalCopy := make(Slice[int], len(original))
+	copy(originalCopy, original)
+
+	_ = original.Tally()
+
+	if !reflect.DeepEqual(original, originalCopy) {
+		t.Errorf("Tally() modified the original slice: got %v, expected %v", original, originalCopy)
+	}
+}
+
+// Test integration with other Slice methods
+func TestSlice_TallyWithOtherMethods(t *testing.T) {
+	// Example: count frequencies after filtering
+	slice := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	evenOnly := slice.KeepIf(func(x int) bool { return x%2 == 0 })
+	tally := evenOnly.Tally()
+
+	expected := map[int]int{2: 1, 4: 1, 6: 1, 8: 1, 10: 1}
+	if !reflect.DeepEqual(tally, expected) {
+		t.Errorf("Tally() after KeepIf() = %v, expected %v", tally, expected)
+	}
+
+	// Example: count frequencies after mapping
+	slice2 := Slice[int]{1, 2, 3, 4, 5}
+	doubled := slice2.Map(func(x int) int { return x * 2 })
+	tally2 := doubled.Tally()
+
+	expected2 := map[int]int{2: 1, 4: 1, 6: 1, 8: 1, 10: 1}
+	if !reflect.DeepEqual(tally2, expected2) {
+		t.Errorf("Tally() after Map() = %v, expected %v", tally2, expected2)
+	}
+}
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestZip(t *testing.T) {
+	t.Run("equal length slices", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[string]{"a", "b", "c"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+			{3, "c"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("first slice shorter", func(t *testing.T) {
+		a := Slice[int]{1, 2}
+		b := Slice[string]{"a", "b", "c", "d"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("second slice shorter", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3, 4, 5}
+		b := Slice[string]{"a", "b"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, "a"},
+			{2, "b"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("first slice empty", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[string]{"a", "b", "c"}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("second slice empty", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[string]{}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("both slices empty", func(t *testing.T) {
+		a := Slice[int]{}
+		b := Slice[string]{}
+		result := Zip(a, b)
+
+		expected := [][2]any{}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("same type slices", func(t *testing.T) {
+		a := Slice[int]{1, 2, 3}
+		b := Slice[int]{10, 20, 30}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1, 10},
+			{2, 20},
+			{3, 30},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("different comparable types", func(t *testing.T) {
+		a := Slice[float64]{1.5, 2.5, 3.5}
+		b := Slice[bool]{true, false, true}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{1.5, true},
+			{2.5, false},
+			{3.5, true},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("single element slices", func(t *testing.T) {
+		a := Slice[int]{42}
+		b := Slice[string]{"answer"}
+		result := Zip(a, b)
+
+		expected := [][2]any{
+			{42, "answer"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Zip() = %v, want %v", result, expected)
+		}
+	})
+}
+
+// Benchmark tests
+func BenchmarkZipEqualLength(b *testing.B) {
+	a := make(Slice[int], 1000)
+	s := make(Slice[string], 1000)
+	for i := range a {
+		a[i] = i
+		s[i] = "test"
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Zip(a, s)
+	}
+}
+
+func BenchmarkZipDifferentLength(b *testing.B) {
+	a := make(Slice[int], 100)
+	s := make(Slice[string], 1000)
+	for i := range a {
+		a[i] = i
+	}
+	for i := range s {
+		s[i] = "test"
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Zip(a, s)
 	}
 }
