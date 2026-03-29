@@ -653,4 +653,124 @@ func TestMap(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Merge basic", func(t *testing.T) {
+		m1 := Map[string, int]{}
+		m1.Store("a", 1)
+		m1.Store("b", 2)
+
+		m2 := Map[string, int]{}
+		m2.Store("c", 3)
+		m2.Store("d", 4)
+
+		merged := m1.Merge(&m2)
+
+		if merged.Size() != 4 {
+			t.Errorf("Expected size 4, got %d", merged.Size())
+		}
+
+		// Verify all keys exist
+		if v, ok := merged.Load("a"); !ok || v != 1 {
+			t.Errorf("Expected a=1, got %d", v)
+		}
+		if v, ok := merged.Load("b"); !ok || v != 2 {
+			t.Errorf("Expected b=2, got %d", v)
+		}
+		if v, ok := merged.Load("c"); !ok || v != 3 {
+			t.Errorf("Expected c=3, got %d", v)
+		}
+		if v, ok := merged.Load("d"); !ok || v != 4 {
+			t.Errorf("Expected d=4, got %d", v)
+		}
+	})
+
+	t.Run("Merge with overlapping keys", func(t *testing.T) {
+		m1 := Map[string, int]{}
+		m1.Store("a", 1)
+		m1.Store("b", 2)
+		m1.Store("c", 3)
+
+		m2 := Map[string, int]{}
+		m2.Store("b", 20) // Override
+		m2.Store("c", 30) // Override
+		m2.Store("d", 4)  // New
+
+		merged := m1.Merge(&m2)
+
+		if merged.Size() != 4 {
+			t.Errorf("Expected size 4, got %d", merged.Size())
+		}
+
+		// Verify m2 values take precedence
+		if v, ok := merged.Load("a"); !ok || v != 1 {
+			t.Errorf("Expected a=1, got %d", v)
+		}
+		if v, ok := merged.Load("b"); !ok || v != 20 {
+			t.Errorf("Expected b=20 (from m2), got %d", v)
+		}
+		if v, ok := merged.Load("c"); !ok || v != 30 {
+			t.Errorf("Expected c=30 (from m2), got %d", v)
+		}
+		if v, ok := merged.Load("d"); !ok || v != 4 {
+			t.Errorf("Expected d=4, got %d", v)
+		}
+	})
+
+	t.Run("Merge does not mutate originals", func(t *testing.T) {
+		m1 := Map[string, string]{}
+		m1.Store("key1", "value1")
+
+		m2 := Map[string, string]{}
+		m2.Store("key2", "value2")
+
+		merged := m1.Merge(&m2)
+
+		// Original maps should be unchanged
+		if m1.Size() != 1 {
+			t.Errorf("m1 should still have size 1, got %d", m1.Size())
+		}
+		if m2.Size() != 1 {
+			t.Errorf("m2 should still have size 1, got %d", m2.Size())
+		}
+		if merged.Size() != 2 {
+			t.Errorf("merged should have size 2, got %d", merged.Size())
+		}
+
+		// Verify m1 doesn't have m2's keys
+		if m1.Has("key2") {
+			t.Error("m1 should not have key2")
+		}
+		// Verify m2 doesn't have m1's keys
+		if m2.Has("key1") {
+			t.Error("m2 should not have key1")
+		}
+	})
+
+	t.Run("Merge empty maps", func(t *testing.T) {
+		m1 := Map[string, int]{}
+		m2 := Map[string, int]{}
+
+		merged := m1.Merge(&m2)
+
+		if merged.Size() != 0 {
+			t.Errorf("Expected size 0, got %d", merged.Size())
+		}
+	})
+
+	t.Run("Merge with one empty map", func(t *testing.T) {
+		m1 := Map[string, int]{}
+		m1.Store("a", 1)
+		m1.Store("b", 2)
+
+		m2 := Map[string, int]{}
+
+		merged := m1.Merge(&m2)
+
+		if merged.Size() != 2 {
+			t.Errorf("Expected size 2, got %d", merged.Size())
+		}
+		if v, ok := merged.Load("a"); !ok || v != 1 {
+			t.Errorf("Expected a=1, got %d", v)
+		}
+	})
 }
