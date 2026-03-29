@@ -225,3 +225,24 @@ func (m *Map[K, V]) Partition(predicate func(k K, v V) bool) (*Map[K, V], *Map[K
 
 	return trueMap, falseMap
 }
+
+// Merge returns a new Map combining entries from both maps.
+// If a key exists in both maps, the value from the other map takes precedence.
+// This is inspired by Ruby's Hash#merge method.
+func (m *Map[K, V]) Merge(other *Map[K, V]) *Map[K, V] {
+	result := &Map[K, V]{}
+
+	// Copy all entries from this map
+	m.store.Range(func(k, v any) bool {
+		result.Store(k.(K), v.(V))
+		return true
+	})
+
+	// Copy all entries from other map, overwriting conflicts
+	other.store.Range(func(k, v any) bool {
+		result.Store(k.(K), v.(V))
+		return true
+	})
+
+	return result
+}
