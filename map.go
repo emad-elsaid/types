@@ -246,3 +246,15 @@ func (m *Map[K, V]) Merge(other *Map[K, V]) *Map[K, V] {
 
 	return result
 }
+
+// Clone creates and returns a shallow copy of the map.
+// All key-value pairs from the original map are copied to the new map.
+// Changes to the cloned map will not affect the original map and vice versa.
+func (m *Map[K, V]) Clone() *Map[K, V] {
+	result := &Map[K, V]{}
+	m.store.Range(func(k, v any) bool {
+		result.Store(k.(K), v.(V))
+		return true
+	})
+	return result
+}
