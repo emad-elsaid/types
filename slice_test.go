@@ -31,6 +31,18 @@ func TestSliceReject(t *testing.T) {
 	}
 }
 
+func TestSliceAll(t *testing.T) {
+	s := Slice[int]{2, 4, 6}
+	if !s.All(func(i int) bool { return i%2 == 0 }) {
+		t.Error("all should be even")
+	}
+
+	s = Slice[int]{2, 4, 5}
+	if s.All(func(i int) bool { return i%2 == 0 }) {
+		t.Error("not all should be even")
+	}
+}
+
 func TestSliceDuplicates(t *testing.T) {
 	tests := []struct {
 		name  string
