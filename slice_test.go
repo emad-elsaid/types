@@ -2409,6 +2409,127 @@ func BenchmarkSliceDeleteIf(b *testing.B) {
 }
 
 
+func TestSliceDrop(t *testing.T) {
+	tests := []struct {
+		name  string
+		slice Slice[int]
+		count int
+		want  Slice[int]
+	}{
+		{
+			name:  "drop 0 returns original slice",
+			slice: Slice[int]{1, 2, 3, 4, 5},
+			count: 0,
+			want:  Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:  "drop negative returns original slice",
+			slice: Slice[int]{1, 2, 3, 4, 5},
+			count: -5,
+			want:  Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:  "drop first element",
+			slice: Slice[int]{1, 2, 3, 4, 5},
+			count: 1,
+			want:  Slice[int]{2, 3, 4, 5},
+		},
+		{
+			name:  "drop first three elements",
+			slice: Slice[int]{1, 2, 3, 4, 5},
+			count: 3,
+			want:  Slice[int]{4, 5},
+		},
+		{
+			name:  "drop all elements",
+			slice: Slice[int]{1, 2, 3, 4, 5},
+			count: 5,
+			want:  Slice[int]{},
+		},
+		{
+			name:  "drop more than length returns empty slice",
+			slice: Slice[int]{1, 2, 3},
+			count: 10,
+			want:  Slice[int]{},
+		},
+		{
+			name:  "drop from empty slice returns empty slice",
+			slice: Slice[int]{},
+			count: 5,
+			want:  Slice[int]{},
+		},
+		{
+			name:  "drop from single element slice",
+			slice: Slice[int]{42},
+			count: 1,
+			want:  Slice[int]{},
+		},
+		{
+			name:  "drop 0 from single element",
+			slice: Slice[int]{42},
+			count: 0,
+			want:  Slice[int]{42},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Drop(tt.count)
+			if !got.IsEq(tt.want) {
+				t.Errorf("Drop(%d) = %v, want %v", tt.count, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceDropString(t *testing.T) {
+	tests := []struct {
+		name  string
+		slice Slice[string]
+		count int
+		want  Slice[string]
+	}{
+		{
+			name:  "drop strings from start",
+			slice: Slice[string]{"a", "b", "c", "d", "e"},
+			count: 2,
+			want:  Slice[string]{"c", "d", "e"},
+		},
+		{
+			name:  "drop all strings",
+			slice: Slice[string]{"hello", "world"},
+			count: 2,
+			want:  Slice[string]{},
+		},
+		{
+			name:  "drop more than length",
+			slice: Slice[string]{"one"},
+			count: 5,
+			want:  Slice[string]{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Drop(tt.count)
+			if !got.IsEq(tt.want) {
+				t.Errorf("Drop(%d) = %v, want %v", tt.count, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSliceDrop_DoesNotModifyOriginal(t *testing.T) {
+	original := Slice[int]{1, 2, 3, 4, 5}
+	expected := Slice[int]{1, 2, 3, 4, 5}
+
+	_ = original.Drop(2)
+
+	if !original.IsEq(expected) {
+		t.Error("Drop should not modify the original slice")
+	}
+}
+
 func TestSliceCycle(t *testing.T) {
 	t.Run("cycles through slice elements multiple times", func(t *testing.T) {
 		s := Slice[int]{1, 2, 3}
