@@ -2612,3 +2612,89 @@ func TestSliceCycle(t *testing.T) {
 		}
 	})
 }
+
+func TestSliceFill(t *testing.T) {
+	t.Run("fills middle portion", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, 1, 3)
+		expected := Slice[int]{1, 0, 0, 0, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("fills from start", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(9, 0, 2)
+		expected := Slice[int]{9, 9, 3, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("fills to end", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(7, 3, 2)
+		expected := Slice[int]{1, 2, 3, 7, 7}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("length exceeds bounds", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, 2, 10)
+		expected := Slice[int]{1, 2, 0, 0, 0}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("negative start returns unchanged", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, -1, 3)
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("start beyond bounds returns unchanged", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, 10, 3)
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("zero length returns unchanged", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, 2, 0)
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("negative length returns unchanged", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(0, 2, -5)
+		expected := Slice[int]{1, 2, 3, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(99, 2, 1)
+		expected := Slice[int]{1, 2, 99, 4, 5}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("fills entire slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := s.Fill(42, 0, 5)
+		expected := Slice[int]{42, 42, 42, 42, 42}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		s := Slice[string]{"a", "b", "c", "d"}
+		result := s.Fill("x", 1, 2)
+		expected := Slice[string]{"a", "x", "x", "d"}
+		AssertSlicesEquals(t, expected, result)
+	})
+
+	t.Run("empty slice returns unchanged", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.Fill(0, 0, 5)
+		expected := Slice[int]{}
+		AssertSlicesEquals(t, expected, result)
+	})
+}
