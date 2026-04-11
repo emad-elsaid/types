@@ -2698,3 +2698,101 @@ func TestSliceFill(t *testing.T) {
 		AssertSlicesEquals(t, expected, result)
 	})
 }
+
+func TestSliceEach(t *testing.T) {
+	t.Run("executes block for each element", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		sum := 0
+		s.Each(func(val int) {
+			sum += val
+		})
+		if sum != 15 {
+			t.Errorf("Expected sum to be 15, got %d", sum)
+		}
+	})
+
+	t.Run("works with empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		count := 0
+		s.Each(func(val int) {
+			count++
+		})
+		if count != 0 {
+			t.Errorf("Expected count to be 0, got %d", count)
+		}
+	})
+
+	t.Run("receives elements in order", func(t *testing.T) {
+		s := Slice[string]{"a", "b", "c"}
+		result := []string{}
+		s.Each(func(val string) {
+			result = append(result, val)
+		})
+		expected := []string{"a", "b", "c"}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("allows mutation of external state", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30}
+		collected := Slice[int]{}
+		s.Each(func(val int) {
+			collected = append(collected, val*2)
+		})
+		expected := Slice[int]{20, 40, 60}
+		AssertSlicesEquals(t, expected, collected)
+	})
+}
+
+func TestSliceEachIndex(t *testing.T) {
+	t.Run("executes block for each index", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40}
+		indexSum := 0
+		s.EachIndex(func(idx int) {
+			indexSum += idx
+		})
+		if indexSum != 6 {
+			t.Errorf("Expected index sum to be 6, got %d", indexSum)
+		}
+	})
+
+	t.Run("works with empty slice", func(t *testing.T) {
+		s := Slice[string]{}
+		count := 0
+		s.EachIndex(func(idx int) {
+			count++
+		})
+		if count != 0 {
+			t.Errorf("Expected count to be 0, got %d", count)
+		}
+	})
+
+	t.Run("receives indices in order", func(t *testing.T) {
+		s := Slice[bool]{true, false, true}
+		indices := []int{}
+		s.EachIndex(func(idx int) {
+			indices = append(indices, idx)
+		})
+		expected := []int{0, 1, 2}
+		if !reflect.DeepEqual(indices, expected) {
+			t.Errorf("Expected %v, got %v", expected, indices)
+		}
+	})
+
+	t.Run("can be used to build index map", func(t *testing.T) {
+		s := Slice[string]{"a", "b", "c"}
+		indexMap := make(map[int]bool)
+		s.EachIndex(func(idx int) {
+			indexMap[idx] = true
+		})
+		if len(indexMap) != 3 {
+			t.Errorf("Expected map length 3, got %d", len(indexMap))
+		}
+		for i := 0; i < 3; i++ {
+			if !indexMap[i] {
+				t.Errorf("Expected index %d to be in map", i)
+			}
+		}
+	})
+}
