@@ -2796,3 +2796,78 @@ func TestSliceEachIndex(t *testing.T) {
 		}
 	})
 }
+func TestSliceFetch(t *testing.T) {
+	tests := []struct {
+		name         string
+		slice        Slice[int]
+		index        int
+		defaultValue int
+		want         int
+	}{
+		{
+			name:         "fetch valid positive index",
+			slice:        Slice[int]{10, 20, 30, 40},
+			index:        2,
+			defaultValue: 99,
+			want:         30,
+		},
+		{
+			name:         "fetch first element",
+			slice:        Slice[int]{10, 20, 30},
+			index:        0,
+			defaultValue: 99,
+			want:         10,
+		},
+		{
+			name:         "fetch last element",
+			slice:        Slice[int]{10, 20, 30},
+			index:        2,
+			defaultValue: 99,
+			want:         30,
+		},
+		{
+			name:         "fetch out of bounds positive returns default",
+			slice:        Slice[int]{10, 20, 30},
+			index:        10,
+			defaultValue: 99,
+			want:         99,
+		},
+		{
+			name:         "fetch negative index from end",
+			slice:        Slice[int]{10, 20, 30, 40},
+			index:        -1,
+			defaultValue: 99,
+			want:         40,
+		},
+		{
+			name:         "fetch negative index middle",
+			slice:        Slice[int]{10, 20, 30, 40},
+			index:        -2,
+			defaultValue: 99,
+			want:         30,
+		},
+		{
+			name:         "fetch out of bounds negative returns default",
+			slice:        Slice[int]{10, 20, 30},
+			index:        -10,
+			defaultValue: 99,
+			want:         99,
+		},
+		{
+			name:         "fetch from empty slice returns default",
+			slice:        Slice[int]{},
+			index:        0,
+			defaultValue: 99,
+			want:         99,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Fetch(tt.index, tt.defaultValue)
+			if got != tt.want {
+				t.Errorf("Slice.Fetch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
