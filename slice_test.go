@@ -2871,3 +2871,78 @@ func TestSliceFetch(t *testing.T) {
 		})
 	}
 }
+
+func TestSliceReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		expected Slice[int]
+	}{
+		{
+			name:     "reverse normal slice",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			expected: Slice[int]{5, 4, 3, 2, 1},
+		},
+		{
+			name:     "reverse empty slice",
+			slice:    Slice[int]{},
+			expected: Slice[int]{},
+		},
+		{
+			name:     "reverse single element",
+			slice:    Slice[int]{42},
+			expected: Slice[int]{42},
+		},
+		{
+			name:     "reverse two elements",
+			slice:    Slice[int]{1, 2},
+			expected: Slice[int]{2, 1},
+		},
+		{
+			name:     "reverse even length slice",
+			slice:    Slice[int]{10, 20, 30, 40},
+			expected: Slice[int]{40, 30, 20, 10},
+		},
+		{
+			name:     "reverse odd length slice",
+			slice:    Slice[int]{10, 20, 30, 40, 50},
+			expected: Slice[int]{50, 40, 30, 20, 10},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a copy of original for mutation check
+			original := make(Slice[int], len(tt.slice))
+			copy(original, tt.slice)
+			
+			result := tt.slice.Reverse()
+			
+			// Verify result matches expected
+			if !result.IsEq(tt.expected) {
+				t.Errorf("Reverse() = %v, want %v", result, tt.expected)
+			}
+			
+			// Verify original slice is unchanged
+			if !tt.slice.IsEq(original) {
+				t.Errorf("Original slice was modified: got %v, want %v", tt.slice, original)
+			}
+		})
+	}
+}
+
+func TestSliceReverseStrings(t *testing.T) {
+	input := Slice[string]{"apple", "banana", "cherry", "date"}
+	expected := Slice[string]{"date", "cherry", "banana", "apple"}
+	result := input.Reverse()
+	
+	if !result.IsEq(expected) {
+		t.Errorf("Reverse() with strings = %v, want %v", result, expected)
+	}
+	
+	// Verify original unchanged
+	expectedOriginal := Slice[string]{"apple", "banana", "cherry", "date"}
+	if !input.IsEq(expectedOriginal) {
+		t.Errorf("Original slice was modified")
+	}
+}
