@@ -2946,3 +2946,117 @@ func TestSliceReverseStrings(t *testing.T) {
 		t.Errorf("Original slice was modified")
 	}
 }
+func TestSliceFillWith(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		start    int
+		length   int
+		block    func(int) int
+		expected Slice[int]
+	}{
+		{
+			name:     "fill middle of slice",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    1,
+			length:   3,
+			block:    func(i int) int { return i * 10 },
+			expected: Slice[int]{1, 10, 20, 30, 5},
+		},
+		{
+			name:     "fill from beginning",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    0,
+			length:   2,
+			block:    func(i int) int { return i + 100 },
+			expected: Slice[int]{100, 101, 3, 4, 5},
+		},
+		{
+			name:     "fill to end of slice",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    3,
+			length:   2,
+			block:    func(i int) int { return 0 },
+			expected: Slice[int]{1, 2, 3, 0, 0},
+		},
+		{
+			name:     "length exceeds slice bounds - should truncate",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    3,
+			length:   10,
+			block:    func(i int) int { return 99 },
+			expected: Slice[int]{1, 2, 3, 99, 99},
+		},
+		{
+			name:     "negative start - no modification",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    -1,
+			length:   3,
+			block:    func(i int) int { return 0 },
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "start beyond slice length - no modification",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    10,
+			length:   3,
+			block:    func(i int) int { return 0 },
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "zero length - no modification",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    2,
+			length:   0,
+			block:    func(i int) int { return 0 },
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "negative length - no modification",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    2,
+			length:   -5,
+			block:    func(i int) int { return 0 },
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "single element fill",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    2,
+			length:   1,
+			block:    func(i int) int { return i * i },
+			expected: Slice[int]{1, 2, 4, 4, 5},
+		},
+		{
+			name:     "fill entire slice",
+			slice:    Slice[int]{1, 2, 3, 4, 5},
+			start:    0,
+			length:   5,
+			block:    func(i int) int { return i },
+			expected: Slice[int]{0, 1, 2, 3, 4},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.FillWith(tt.start, tt.length, tt.block)
+			AssertSlicesEquals(t, result, tt.expected)
+		})
+	}
+}
+
+func TestSliceFillWithStrings(t *testing.T) {
+	slice := Slice[string]{"a", "b", "c", "d", "e"}
+	result := slice.FillWith(1, 3, func(i int) string {
+		return "x"
+	})
+	expected := Slice[string]{"a", "x", "x", "x", "e"}
+	AssertSlicesEquals(t, result, expected)
+}
+
+func TestSliceFillWithEmptySlice(t *testing.T) {
+	slice := Slice[int]{}
+	result := slice.FillWith(0, 5, func(i int) int { return i })
+	expected := Slice[int]{}
+	AssertSlicesEquals(t, result, expected)
+}
