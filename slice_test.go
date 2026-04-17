@@ -3060,3 +3060,193 @@ func TestSliceFillWithEmptySlice(t *testing.T) {
 	expected := Slice[int]{}
 	AssertSlicesEquals(t, result, expected)
 }
+
+func TestSliceMin(t *testing.T) {
+	t.Run("returns minimum based on score function", func(t *testing.T) {
+		s := Slice[int]{5, 2, 8, 1, 9}
+		min := s.Min(func(x int) int { return x })
+		if min != 1 {
+			t.Errorf("Expected 1, got %d", min)
+		}
+	})
+
+	t.Run("handles negative numbers", func(t *testing.T) {
+		s := Slice[int]{5, -2, 8, -10, 3}
+		min := s.Min(func(x int) int { return x })
+		if min != -10 {
+			t.Errorf("Expected -10, got %d", min)
+		}
+	})
+
+	t.Run("works with custom score function", func(t *testing.T) {
+		type Person struct {
+			name string
+			age  int
+		}
+		people := Slice[Person]{
+			{"Alice", 30},
+			{"Bob", 25},
+			{"Charlie", 35},
+		}
+		youngest := people.Min(func(p Person) int { return p.age })
+		if youngest.name != "Bob" {
+			t.Errorf("Expected Bob, got %s", youngest.name)
+		}
+	})
+
+	t.Run("returns zero value for empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		min := s.Min(func(x int) int { return x })
+		if min != 0 {
+			t.Errorf("Expected 0 (zero value), got %d", min)
+		}
+	})
+
+	t.Run("returns single element for single-element slice", func(t *testing.T) {
+		s := Slice[int]{42}
+		min := s.Min(func(x int) int { return x })
+		if min != 42 {
+			t.Errorf("Expected 42, got %d", min)
+		}
+	})
+
+	t.Run("handles all equal elements", func(t *testing.T) {
+		s := Slice[int]{7, 7, 7, 7}
+		min := s.Min(func(x int) int { return x })
+		if min != 7 {
+			t.Errorf("Expected 7, got %d", min)
+		}
+	})
+}
+
+func TestSlicePartition(t *testing.T) {
+	t.Run("partitions even and odd numbers", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		evens, odds := s.Partition(func(x int) bool { return x%2 == 0 })
+
+		expectedEvens := Slice[int]{2, 4, 6}
+		expectedOdds := Slice[int]{1, 3, 5}
+
+		if !evens.IsEq(expectedEvens) {
+			t.Errorf("Expected evens %v, got %v", expectedEvens, evens)
+		}
+		if !odds.IsEq(expectedOdds) {
+			t.Errorf("Expected odds %v, got %v", expectedOdds, odds)
+		}
+	})
+
+	t.Run("handles all true predicate", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6, 8}
+		trueSet, falseSet := s.Partition(func(x int) bool { return x%2 == 0 })
+
+		if !trueSet.IsEq(s) {
+			t.Errorf("Expected all elements in true set, got %v", trueSet)
+		}
+		if len(falseSet) != 0 {
+			t.Errorf("Expected empty false set, got %v", falseSet)
+		}
+	})
+
+	t.Run("handles all false predicate", func(t *testing.T) {
+		s := Slice[int]{1, 3, 5, 7}
+		trueSet, falseSet := s.Partition(func(x int) bool { return x%2 == 0 })
+
+		if len(trueSet) != 0 {
+			t.Errorf("Expected empty true set, got %v", trueSet)
+		}
+		if !falseSet.IsEq(s) {
+			t.Errorf("Expected all elements in false set, got %v", falseSet)
+		}
+	})
+
+	t.Run("handles empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		trueSet, falseSet := s.Partition(func(x int) bool { return x%2 == 0 })
+
+		if len(trueSet) != 0 || len(falseSet) != 0 {
+			t.Errorf("Expected both sets to be empty, got true: %v, false: %v", trueSet, falseSet)
+		}
+	})
+
+	t.Run("partitions strings by length", func(t *testing.T) {
+		s := Slice[string]{"a", "bb", "ccc", "d", "ee"}
+		long, short := s.Partition(func(x string) bool { return len(x) > 1 })
+
+		expectedLong := Slice[string]{"bb", "ccc", "ee"}
+		expectedShort := Slice[string]{"a", "d"}
+
+		if !long.IsEq(expectedLong) {
+			t.Errorf("Expected long %v, got %v", expectedLong, long)
+		}
+		if !short.IsEq(expectedShort) {
+			t.Errorf("Expected short %v, got %v", expectedShort, short)
+		}
+	})
+}
+
+func TestSliceReduce(t *testing.T) {
+	t.Run("sums integers", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		sum := SliceReduce(s, 0, func(acc int, x int) int { return acc + x })
+		if sum != 15 {
+			t.Errorf("Expected 15, got %d", sum)
+		}
+	})
+
+	t.Run("multiplies integers", func(t *testing.T) {
+		s := Slice[int]{2, 3, 4}
+		product := SliceReduce(s, 1, func(acc int, x int) int { return acc * x })
+		if product != 24 {
+			t.Errorf("Expected 24, got %d", product)
+		}
+	})
+
+	t.Run("concatenates strings", func(t *testing.T) {
+		s := Slice[string]{"Hello", " ", "World"}
+		result := SliceReduce(s, "", func(acc string, x string) string { return acc + x })
+		expected := "Hello World"
+		if result != expected {
+			t.Errorf("Expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("builds map from slice", func(t *testing.T) {
+		s := Slice[string]{"a", "b", "c"}
+		result := SliceReduce(s, map[string]int{}, func(acc map[string]int, x string) map[string]int {
+			acc[x] = len(x)
+			return acc
+		})
+		if len(result) != 3 || result["a"] != 1 || result["b"] != 1 || result["c"] != 1 {
+			t.Errorf("Expected map[a:1 b:1 c:1], got %v", result)
+		}
+	})
+
+	t.Run("handles empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		sum := SliceReduce(s, 42, func(acc int, x int) int { return acc + x })
+		if sum != 42 {
+			t.Errorf("Expected initial value 42, got %d", sum)
+		}
+	})
+
+	t.Run("counts elements", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		count := SliceReduce(s, 0, func(acc int, _ int) int { return acc + 1 })
+		if count != 5 {
+			t.Errorf("Expected 5, got %d", count)
+		}
+	})
+
+	t.Run("finds maximum", func(t *testing.T) {
+		s := Slice[int]{3, 7, 2, 9, 1}
+		max := SliceReduce(s, s[0], func(acc int, x int) int {
+			if x > acc {
+				return x
+			}
+			return acc
+		})
+		if max != 9 {
+			t.Errorf("Expected 9, got %d", max)
+		}
+	})
+}
