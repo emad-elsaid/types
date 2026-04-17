@@ -3060,3 +3060,141 @@ func TestSliceFillWithEmptySlice(t *testing.T) {
 	expected := Slice[int]{}
 	AssertSlicesEquals(t, result, expected)
 }
+
+func TestSliceInsert(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		index    int
+		elements []int
+		want     Slice[int]
+	}{
+		{
+			name:     "insert at beginning",
+			slice:    Slice[int]{3, 4, 5},
+			index:    0,
+			elements: []int{1, 2},
+			want:     Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "insert at end",
+			slice:    Slice[int]{1, 2, 3},
+			index:    3,
+			elements: []int{4, 5},
+			want:     Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "insert in middle",
+			slice:    Slice[int]{1, 2, 5, 6},
+			index:    2,
+			elements: []int{3, 4},
+			want:     Slice[int]{1, 2, 3, 4, 5, 6},
+		},
+		{
+			name:     "insert single element at beginning",
+			slice:    Slice[int]{2, 3, 4},
+			index:    0,
+			elements: []int{1},
+			want:     Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "insert single element in middle",
+			slice:    Slice[int]{1, 3, 4},
+			index:    1,
+			elements: []int{2},
+			want:     Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "insert single element at end",
+			slice:    Slice[int]{1, 2, 3},
+			index:    3,
+			elements: []int{4},
+			want:     Slice[int]{1, 2, 3, 4},
+		},
+		{
+			name:     "insert into empty slice",
+			slice:    Slice[int]{},
+			index:    0,
+			elements: []int{1, 2, 3},
+			want:     Slice[int]{1, 2, 3},
+		},
+		{
+			name:     "insert empty elements",
+			slice:    Slice[int]{1, 2, 3},
+			index:    1,
+			elements: []int{},
+			want:     Slice[int]{1, 2, 3},
+		},
+		{
+			name:     "insert multiple elements at beginning",
+			slice:    Slice[int]{4, 5},
+			index:    0,
+			elements: []int{1, 2, 3},
+			want:     Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "insert multiple elements at end",
+			slice:    Slice[int]{1, 2},
+			index:    2,
+			elements: []int{3, 4, 5},
+			want:     Slice[int]{1, 2, 3, 4, 5},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Insert(tt.index, tt.elements...)
+			AssertSlicesEquals(t, got, tt.want)
+		})
+	}
+}
+
+func TestSliceInsertWithStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[string]
+		index    int
+		elements []string
+		want     Slice[string]
+	}{
+		{
+			name:     "insert string at beginning",
+			slice:    Slice[string]{"world"},
+			index:    0,
+			elements: []string{"hello"},
+			want:     Slice[string]{"hello", "world"},
+		},
+		{
+			name:     "insert multiple strings in middle",
+			slice:    Slice[string]{"a", "d"},
+			index:    1,
+			elements: []string{"b", "c"},
+			want:     Slice[string]{"a", "b", "c", "d"},
+		},
+		{
+			name:     "insert empty string",
+			slice:    Slice[string]{"a", "b"},
+			index:    1,
+			elements: []string{""},
+			want:     Slice[string]{"a", "", "b"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Insert(tt.index, tt.elements...)
+			AssertSlicesEquals(t, got, tt.want)
+		})
+	}
+}
+
+func TestSliceInsertImmutability(t *testing.T) {
+	original := Slice[int]{1, 2, 3}
+	originalCopy := make(Slice[int], len(original))
+	copy(originalCopy, original)
+
+	result := original.Insert(1, 99)
+
+	AssertSlicesEquals(t, original, originalCopy)
+	AssertSlicesEquals(t, result, Slice[int]{1, 99, 2, 3})
+}
