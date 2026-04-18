@@ -3198,3 +3198,150 @@ func TestSliceInsertImmutability(t *testing.T) {
 	AssertSlicesEquals(t, original, originalCopy)
 	AssertSlicesEquals(t, result, Slice[int]{1, 99, 2, 3})
 }
+
+func TestSliceReduce(t *testing.T) {
+	t.Run("sum integers", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := SliceReduce(s, 0, func(acc int, item int) int {
+			return acc + item
+		})
+		expected := 15
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("multiply integers", func(t *testing.T) {
+		s := Slice[int]{2, 3, 4}
+		result := SliceReduce(s, 1, func(acc int, item int) int {
+			return acc * item
+		})
+		expected := 24
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("concatenate strings", func(t *testing.T) {
+		s := Slice[string]{"hello", "world", "test"}
+		result := SliceReduce(s, "", func(acc string, item string) string {
+			if acc == "" {
+				return item
+			}
+			return acc + " " + item
+		})
+		expected := "hello world test"
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("build map from slice", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3}
+		result := SliceReduce(s, map[int]string{}, func(acc map[int]string, item int) map[int]string {
+			acc[item] = "value"
+			return acc
+		})
+		if len(result) != 3 {
+			t.Errorf("Expected map with 3 entries but got %d", len(result))
+		}
+		for _, key := range s {
+			if result[key] != "value" {
+				t.Errorf("Expected result[%d] = 'value' but got %v", key, result[key])
+			}
+		}
+	})
+
+	t.Run("count elements matching condition", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		result := SliceReduce(s, 0, func(acc int, item int) int {
+			if item%2 == 0 {
+				return acc + 1
+			}
+			return acc
+		})
+		expected := 3
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("empty slice returns initial value", func(t *testing.T) {
+		s := Slice[int]{}
+		result := SliceReduce(s, 42, func(acc int, item int) int {
+			return acc + item
+		})
+		expected := 42
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("find max value", func(t *testing.T) {
+		s := Slice[int]{3, 7, 2, 9, 1, 5}
+		result := SliceReduce(s, s[0], func(max int, item int) int {
+			if item > max {
+				return item
+			}
+			return max
+		})
+		expected := 9
+		if result != expected {
+			t.Errorf("Expected %v but got %v", expected, result)
+		}
+	})
+
+	t.Run("create slice from numbers", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		result := SliceReduce(s, []int{}, func(acc []int, item int) []int {
+			return append(acc, item*2)
+		})
+		expected := []int{2, 4, 6, 8, 10}
+		if len(result) != len(expected) {
+			t.Errorf("Expected length %d but got %d", len(expected), len(result))
+		}
+		for i := range expected {
+			if result[i] != expected[i] {
+				t.Errorf("Expected result[%d] = %d but got %d", i, expected[i], result[i])
+			}
+		}
+	})
+
+	t.Run("reverse string", func(t *testing.T) {
+		s := Slice[rune]{'h', 'e', 'l', 'l', 'o'}
+		result := SliceReduce(s, []rune{}, func(acc []rune, item rune) []rune {
+			return append([]rune{item}, acc...)
+		})
+		expected := []rune{'o', 'l', 'l', 'e', 'h'}
+		if len(result) != len(expected) {
+			t.Errorf("Expected length %d but got %d", len(expected), len(result))
+		}
+		for i := range expected {
+			if result[i] != expected[i] {
+				t.Errorf("Expected result[%d] = %c but got %c", i, expected[i], result[i])
+			}
+		}
+	})
+
+	t.Run("group by property", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		s := Slice[Person]{
+			{Name: "Alice", Age: 25},
+			{Name: "Bob", Age: 30},
+			{Name: "Charlie", Age: 25},
+		}
+		result := SliceReduce(s, map[int][]string{}, func(acc map[int][]string, item Person) map[int][]string {
+			acc[item.Age] = append(acc[item.Age], item.Name)
+			return acc
+		})
+		if len(result[25]) != 2 {
+			t.Errorf("Expected 2 people aged 25 but got %d", len(result[25]))
+		}
+		if len(result[30]) != 1 {
+			t.Errorf("Expected 1 person aged 30 but got %d", len(result[30]))
+		}
+	})
+}
