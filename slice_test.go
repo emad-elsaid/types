@@ -3198,3 +3198,110 @@ func TestSliceInsertImmutability(t *testing.T) {
 	AssertSlicesEquals(t, original, originalCopy)
 	AssertSlicesEquals(t, result, Slice[int]{1, 99, 2, 3})
 }
+
+func TestSlicePartition(t *testing.T) {
+	tests := []struct {
+		name          string
+		slice         Slice[int]
+		predicate     func(int) bool
+		expectedTrue  Slice[int]
+		expectedFalse Slice[int]
+	}{
+		{
+			name:          "partition even and odd numbers",
+			slice:         Slice[int]{1, 2, 3, 4, 5, 6},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{2, 4, 6},
+			expectedFalse: Slice[int]{1, 3, 5},
+		},
+		{
+			name:          "partition by threshold",
+			slice:         Slice[int]{1, 5, 10, 15, 20},
+			predicate:     func(n int) bool { return n > 10 },
+			expectedTrue:  Slice[int]{15, 20},
+			expectedFalse: Slice[int]{1, 5, 10},
+		},
+		{
+			name:          "all match predicate",
+			slice:         Slice[int]{2, 4, 6, 8},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{2, 4, 6, 8},
+			expectedFalse: Slice[int]{},
+		},
+		{
+			name:          "none match predicate",
+			slice:         Slice[int]{1, 3, 5, 7},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{},
+			expectedFalse: Slice[int]{1, 3, 5, 7},
+		},
+		{
+			name:          "empty slice",
+			slice:         Slice[int]{},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{},
+			expectedFalse: Slice[int]{},
+		},
+		{
+			name:          "single element matching",
+			slice:         Slice[int]{2},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{2},
+			expectedFalse: Slice[int]{},
+		},
+		{
+			name:          "single element not matching",
+			slice:         Slice[int]{1},
+			predicate:     func(n int) bool { return n%2 == 0 },
+			expectedTrue:  Slice[int]{},
+			expectedFalse: Slice[int]{1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trueSet, falseSet := tt.slice.Partition(tt.predicate)
+
+			if !trueSet.IsEq(tt.expectedTrue) {
+				t.Errorf("Partition() true set = %v, want %v", trueSet, tt.expectedTrue)
+			}
+			if !falseSet.IsEq(tt.expectedFalse) {
+				t.Errorf("Partition() false set = %v, want %v", falseSet, tt.expectedFalse)
+			}
+		})
+	}
+}
+
+func TestSlicePartitionStrings(t *testing.T) {
+	words := Slice[string]{"apple", "banana", "cherry", "apricot", "blueberry"}
+	predicate := func(s string) bool { return s[0] == 'a' }
+
+	startsWithA, other := words.Partition(predicate)
+
+	expectedA := Slice[string]{"apple", "apricot"}
+	expectedOther := Slice[string]{"banana", "cherry", "blueberry"}
+
+	if !startsWithA.IsEq(expectedA) {
+		t.Errorf("Partition() true set = %v, want %v", startsWithA, expectedA)
+	}
+	if !other.IsEq(expectedOther) {
+		t.Errorf("Partition() false set = %v, want %v", other, expectedOther)
+	}
+}
+
+func TestSlicePartitionPreservesOrder(t *testing.T) {
+	slice := Slice[int]{5, 1, 8, 3, 9, 2, 7, 4, 6}
+	predicate := func(n int) bool { return n > 5 }
+
+	greater, lessOrEqual := slice.Partition(predicate)
+
+	expectedGreater := Slice[int]{8, 9, 7, 6}
+	expectedLessOrEqual := Slice[int]{5, 1, 3, 2, 4}
+
+	if !greater.IsEq(expectedGreater) {
+		t.Errorf("Partition() should preserve order: got %v, want %v", greater, expectedGreater)
+	}
+	if !lessOrEqual.IsEq(expectedLessOrEqual) {
+		t.Errorf("Partition() should preserve order: got %v, want %v", lessOrEqual, expectedLessOrEqual)
+	}
+}
