@@ -3305,3 +3305,179 @@ func TestSlicePartitionPreservesOrder(t *testing.T) {
 		t.Errorf("Partition() should preserve order: got %v, want %v", lessOrEqual, expectedLessOrEqual)
 	}
 }
+
+func TestSliceMax(t *testing.T) {
+	t.Run("finds element with highest score", func(t *testing.T) {
+		s := Slice[int]{1, 5, 3, 9, 2}
+		max := s.Max(func(i int) int { return i })
+		if max != 9 {
+			t.Errorf("Expected 9 but got %d", max)
+		}
+	})
+
+	t.Run("finds string with longest length", func(t *testing.T) {
+		s := Slice[string]{"a", "abc", "ab", "abcd"}
+		max := s.Max(func(s string) int { return len(s) })
+		if max != "abcd" {
+			t.Errorf("Expected 'abcd' but got '%s'", max)
+		}
+	})
+
+	t.Run("custom scoring function", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		people := Slice[Person]{
+			{"Alice", 25},
+			{"Bob", 30},
+			{"Charlie", 20},
+		}
+		oldest := people.Max(func(p Person) int { return p.Age })
+		if oldest.Name != "Bob" || oldest.Age != 30 {
+			t.Errorf("Expected Bob(30) but got %s(%d)", oldest.Name, oldest.Age)
+		}
+	})
+
+	t.Run("returns first element when all have same score", func(t *testing.T) {
+		s := Slice[int]{5, 5, 5}
+		max := s.Max(func(i int) int { return i })
+		if max != 5 {
+			t.Errorf("Expected 5 but got %d", max)
+		}
+	})
+
+	t.Run("single element slice", func(t *testing.T) {
+		s := Slice[int]{42}
+		max := s.Max(func(i int) int { return i })
+		if max != 42 {
+			t.Errorf("Expected 42 but got %d", max)
+		}
+	})
+
+	t.Run("empty slice returns zero value", func(t *testing.T) {
+		s := Slice[int]{}
+		max := s.Max(func(i int) int { return i })
+		if max != 0 {
+			t.Errorf("Expected 0 (zero value) but got %d", max)
+		}
+	})
+
+	t.Run("negative scores", func(t *testing.T) {
+		s := Slice[int]{-5, -2, -10, -1}
+		max := s.Max(func(i int) int { return i })
+		if max != -1 {
+			t.Errorf("Expected -1 but got %d", max)
+		}
+	})
+}
+
+func TestSliceMin(t *testing.T) {
+	t.Run("finds element with lowest score", func(t *testing.T) {
+		s := Slice[int]{5, 1, 9, 3, 2}
+		min := s.Min(func(i int) int { return i })
+		if min != 1 {
+			t.Errorf("Expected 1 but got %d", min)
+		}
+	})
+
+	t.Run("finds string with shortest length", func(t *testing.T) {
+		s := Slice[string]{"abcd", "abc", "ab", "a"}
+		min := s.Min(func(s string) int { return len(s) })
+		if min != "a" {
+			t.Errorf("Expected 'a' but got '%s'", min)
+		}
+	})
+
+	t.Run("custom scoring function", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		people := Slice[Person]{
+			{"Alice", 25},
+			{"Bob", 30},
+			{"Charlie", 20},
+		}
+		youngest := people.Min(func(p Person) int { return p.Age })
+		if youngest.Name != "Charlie" || youngest.Age != 20 {
+			t.Errorf("Expected Charlie(20) but got %s(%d)", youngest.Name, youngest.Age)
+		}
+	})
+
+	t.Run("returns first element when all have same score", func(t *testing.T) {
+		s := Slice[int]{5, 5, 5}
+		min := s.Min(func(i int) int { return i })
+		if min != 5 {
+			t.Errorf("Expected 5 but got %d", min)
+		}
+	})
+
+	t.Run("single element slice", func(t *testing.T) {
+		s := Slice[int]{42}
+		min := s.Min(func(i int) int { return i })
+		if min != 42 {
+			t.Errorf("Expected 42 but got %d", min)
+		}
+	})
+
+	t.Run("empty slice returns zero value", func(t *testing.T) {
+		s := Slice[int]{}
+		min := s.Min(func(i int) int { return i })
+		if min != 0 {
+			t.Errorf("Expected 0 (zero value) but got %d", min)
+		}
+	})
+
+	t.Run("negative scores", func(t *testing.T) {
+		s := Slice[int]{-1, -5, -2, -10}
+		min := s.Min(func(i int) int { return i })
+		if min != -10 {
+			t.Errorf("Expected -10 but got %d", min)
+		}
+	})
+}
+
+func TestSliceSelect(t *testing.T) {
+	t.Run("selects even numbers", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5, 6}
+		selected := s.Select(func(i int) bool { return i%2 == 0 })
+		expected := Slice[int]{2, 4, 6}
+		if !selected.IsEq(expected) {
+			t.Errorf("Expected %v but got %v", expected, selected)
+		}
+	})
+
+	t.Run("selects strings with length > 2", func(t *testing.T) {
+		s := Slice[string]{"a", "ab", "abc", "abcd"}
+		selected := s.Select(func(s string) bool { return len(s) > 2 })
+		expected := Slice[string]{"abc", "abcd"}
+		if !selected.IsEq(expected) {
+			t.Errorf("Expected %v but got %v", expected, selected)
+		}
+	})
+
+	t.Run("empty slice returns empty", func(t *testing.T) {
+		s := Slice[int]{}
+		selected := s.Select(func(i int) bool { return i > 0 })
+		if len(selected) != 0 {
+			t.Errorf("Expected empty slice but got %v", selected)
+		}
+	})
+
+	t.Run("no matches returns empty", func(t *testing.T) {
+		s := Slice[int]{1, 3, 5}
+		selected := s.Select(func(i int) bool { return i%2 == 0 })
+		if len(selected) != 0 {
+			t.Errorf("Expected empty slice but got %v", selected)
+		}
+	})
+
+	t.Run("all match returns all", func(t *testing.T) {
+		s := Slice[int]{2, 4, 6}
+		selected := s.Select(func(i int) bool { return i%2 == 0 })
+		if !selected.IsEq(s) {
+			t.Errorf("Expected %v but got %v", s, selected)
+		}
+	})
+}
