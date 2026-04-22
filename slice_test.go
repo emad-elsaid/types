@@ -3477,3 +3477,64 @@ func TestSliceSelect(t *testing.T) {
 		}
 	})
 }
+
+func TestIsEq(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    Slice[int]
+		other    Slice[int]
+		expected bool
+	}{
+		{
+			name:     "equal slices",
+			slice:    Slice[int]{1, 2, 3},
+			other:    Slice[int]{1, 2, 3},
+			expected: true,
+		},
+		{
+			name:     "different lengths",
+			slice:    Slice[int]{1, 2, 3},
+			other:    Slice[int]{1, 2},
+			expected: false,
+		},
+		{
+			name:     "same length different values",
+			slice:    Slice[int]{1, 2, 3},
+			other:    Slice[int]{1, 2, 4},
+			expected: false,
+		},
+		{
+			name:     "both empty",
+			slice:    Slice[int]{},
+			other:    Slice[int]{},
+			expected: true,
+		},
+		{
+			name:     "one empty one not",
+			slice:    Slice[int]{1},
+			other:    Slice[int]{},
+			expected: false,
+		},
+		{
+			name:     "different values at start",
+			slice:    Slice[int]{5, 2, 3},
+			other:    Slice[int]{1, 2, 3},
+			expected: false,
+		},
+		{
+			name:     "different values at middle",
+			slice:    Slice[int]{1, 5, 3},
+			other:    Slice[int]{1, 2, 3},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.slice.IsEq(tt.other)
+			if result != tt.expected {
+				t.Errorf("IsEq() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
