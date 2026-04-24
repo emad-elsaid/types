@@ -3538,3 +3538,69 @@ func TestIsEq(t *testing.T) {
 		})
 	}
 }
+
+func TestSliceIndex(t *testing.T) {
+	t.Run("returns index of first occurrence when element exists", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40, 50}
+		if idx := s.Index(30); idx != 2 {
+			t.Errorf("Expected index 2, got %d", idx)
+		}
+	})
+
+	t.Run("returns first index when element appears multiple times", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "apple", "cherry"}
+		if idx := s.Index("apple"); idx != 0 {
+			t.Errorf("Expected index 0, got %d", idx)
+		}
+	})
+
+	t.Run("returns -1 when element not found", func(t *testing.T) {
+		s := Slice[int]{1, 2, 3, 4, 5}
+		if idx := s.Index(99); idx != -1 {
+			t.Errorf("Expected index -1, got %d", idx)
+		}
+	})
+
+	t.Run("returns -1 for empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		if idx := s.Index(10); idx != -1 {
+			t.Errorf("Expected index -1 for empty slice, got %d", idx)
+		}
+	})
+
+	t.Run("finds element at first position", func(t *testing.T) {
+		s := Slice[string]{"first", "second", "third"}
+		if idx := s.Index("first"); idx != 0 {
+			t.Errorf("Expected index 0, got %d", idx)
+		}
+	})
+
+	t.Run("finds element at last position", func(t *testing.T) {
+		s := Slice[string]{"first", "second", "third"}
+		if idx := s.Index("third"); idx != 2 {
+			t.Errorf("Expected index 2, got %d", idx)
+		}
+	})
+
+	t.Run("works with different comparable types", func(t *testing.T) {
+		floats := Slice[float64]{1.1, 2.2, 3.3, 4.4}
+		if idx := floats.Index(3.3); idx != 2 {
+			t.Errorf("Expected index 2 for float64, got %d", idx)
+		}
+
+		bools := Slice[bool]{true, false, true}
+		if idx := bools.Index(false); idx != 1 {
+			t.Errorf("Expected index 1 for bool, got %d", idx)
+		}
+	})
+
+	t.Run("handles single element slice", func(t *testing.T) {
+		s := Slice[int]{42}
+		if idx := s.Index(42); idx != 0 {
+			t.Errorf("Expected index 0 for single element, got %d", idx)
+		}
+		if idx := s.Index(99); idx != -1 {
+			t.Errorf("Expected index -1 for not found in single element, got %d", idx)
+		}
+	})
+}
