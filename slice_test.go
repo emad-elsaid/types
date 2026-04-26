@@ -3538,3 +3538,69 @@ func TestIsEq(t *testing.T) {
 		})
 	}
 }
+
+func TestSliceIndex(t *testing.T) {
+	t.Run("finds element at beginning", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40}
+		result := s.Index(10)
+		if result != 0 {
+			t.Errorf("Expected index 0, got %d", result)
+		}
+	})
+
+	t.Run("finds element in middle", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40}
+		result := s.Index(20)
+		if result != 1 {
+			t.Errorf("Expected index 1, got %d", result)
+		}
+	})
+
+	t.Run("finds element at end", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40}
+		result := s.Index(40)
+		if result != 3 {
+			t.Errorf("Expected index 3, got %d", result)
+		}
+	})
+
+	t.Run("returns -1 when element not found", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 40}
+		result := s.Index(99)
+		if result != -1 {
+			t.Errorf("Expected -1, got %d", result)
+		}
+	})
+
+	t.Run("returns -1 for empty slice", func(t *testing.T) {
+		s := Slice[int]{}
+		result := s.Index(10)
+		if result != -1 {
+			t.Errorf("Expected -1, got %d", result)
+		}
+	})
+
+	t.Run("finds first occurrence when duplicates exist", func(t *testing.T) {
+		s := Slice[int]{10, 20, 30, 20, 40}
+		result := s.Index(20)
+		if result != 1 {
+			t.Errorf("Expected index 1 (first occurrence), got %d", result)
+		}
+	})
+
+	t.Run("works with string slice", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry"}
+		result := s.Index("banana")
+		if result != 1 {
+			t.Errorf("Expected index 1, got %d", result)
+		}
+	})
+
+	t.Run("returns -1 for string not in slice", func(t *testing.T) {
+		s := Slice[string]{"apple", "banana", "cherry"}
+		result := s.Index("orange")
+		if result != -1 {
+			t.Errorf("Expected -1, got %d", result)
+		}
+	})
+}
