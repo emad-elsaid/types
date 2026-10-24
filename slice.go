@@ -647,7 +647,7 @@ func (a Slice[T]) Duplicates() Slice[T] {
 // The resulting slice will have the length of the shorter input slice.
 // Inspired by Ruby's Array#zip method.
 // Example: Slice[int]{1, 2, 3}.Zip(Slice[string]{"a", "b"}) returns [[1,"a"], [2,"b"]]
-func Zip[T, U comparable](a Slice[T], b Slice[U]) [][2]any {
+func (a Slice[T]) Zip[U comparable](b Slice[U]) [][2]any {
 	minLen := len(a)
 	if len(b) < minLen {
 		minLen = len(b)
@@ -660,10 +660,10 @@ func Zip[T, U comparable](a Slice[T], b Slice[U]) [][2]any {
 	return result
 }
 
-// SliceReduce applies a function against an accumulator and each element in the slice
-func SliceReduce[T comparable, U any](s Slice[T], initial U, fn func(U, T) U) U {
+// Fold applies a function against an accumulator and each element in the slice
+func (a Slice[T]) Fold[U any](initial U, fn func(U, T) U) U {
 	result := initial
-	for _, item := range s {
+	for _, item := range a {
 		result = fn(result, item)
 	}
 

@@ -1474,11 +1474,11 @@ func TestSlice_TallyWithOtherMethods(t *testing.T) {
 	}
 }
 
-func TestZip(t *testing.T) {
+func TestSlice_Zip(t *testing.T) {
 	t.Run("equal length slices", func(t *testing.T) {
 		a := Slice[int]{1, 2, 3}
 		b := Slice[string]{"a", "b", "c"}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{1, "a"},
@@ -1494,7 +1494,7 @@ func TestZip(t *testing.T) {
 	t.Run("first slice shorter", func(t *testing.T) {
 		a := Slice[int]{1, 2}
 		b := Slice[string]{"a", "b", "c", "d"}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{1, "a"},
@@ -1509,7 +1509,7 @@ func TestZip(t *testing.T) {
 	t.Run("second slice shorter", func(t *testing.T) {
 		a := Slice[int]{1, 2, 3, 4, 5}
 		b := Slice[string]{"a", "b"}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{1, "a"},
@@ -1524,7 +1524,7 @@ func TestZip(t *testing.T) {
 	t.Run("first slice empty", func(t *testing.T) {
 		a := Slice[int]{}
 		b := Slice[string]{"a", "b", "c"}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{}
 
@@ -1536,7 +1536,7 @@ func TestZip(t *testing.T) {
 	t.Run("second slice empty", func(t *testing.T) {
 		a := Slice[int]{1, 2, 3}
 		b := Slice[string]{}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{}
 
@@ -1548,7 +1548,7 @@ func TestZip(t *testing.T) {
 	t.Run("both slices empty", func(t *testing.T) {
 		a := Slice[int]{}
 		b := Slice[string]{}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{}
 
@@ -1560,7 +1560,7 @@ func TestZip(t *testing.T) {
 	t.Run("same type slices", func(t *testing.T) {
 		a := Slice[int]{1, 2, 3}
 		b := Slice[int]{10, 20, 30}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{1, 10},
@@ -1576,7 +1576,7 @@ func TestZip(t *testing.T) {
 	t.Run("different comparable types", func(t *testing.T) {
 		a := Slice[float64]{1.5, 2.5, 3.5}
 		b := Slice[bool]{true, false, true}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{1.5, true},
@@ -1592,7 +1592,7 @@ func TestZip(t *testing.T) {
 	t.Run("single element slices", func(t *testing.T) {
 		a := Slice[int]{42}
 		b := Slice[string]{"answer"}
-		result := Zip(a, b)
+		result := a.Zip(b)
 
 		expected := [][2]any{
 			{42, "answer"},
@@ -1615,7 +1615,7 @@ func BenchmarkZipEqualLength(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Zip(a, s)
+		_ = a.Zip(s)
 	}
 }
 
@@ -1631,7 +1631,7 @@ func BenchmarkZipDifferentLength(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Zip(a, s)
+		_ = a.Zip(s)
 	}
 }
 
@@ -3394,10 +3394,10 @@ func TestSliceMin(t *testing.T) {
 	})
 }
 
-func TestSliceReduce(t *testing.T) {
+func TestSlice_Fold(t *testing.T) {
 	t.Run("sums integers", func(t *testing.T) {
 		s := Slice[int]{1, 2, 3, 4, 5}
-		result := SliceReduce(s, 0, func(acc int, val int) int {
+		result := s.Fold(0, func(acc int, val int) int {
 			return acc + val
 		})
 		if result != 15 {
@@ -3407,7 +3407,7 @@ func TestSliceReduce(t *testing.T) {
 
 	t.Run("concatenates strings", func(t *testing.T) {
 		s := Slice[string]{"Hello", " ", "World"}
-		result := SliceReduce(s, "", func(acc string, val string) string {
+		result := s.Fold("", func(acc string, val string) string {
 			return acc + val
 		})
 		if result != "Hello World" {
@@ -3417,7 +3417,7 @@ func TestSliceReduce(t *testing.T) {
 
 	t.Run("returns initial value for empty slice", func(t *testing.T) {
 		s := Slice[int]{}
-		result := SliceReduce(s, 100, func(acc int, val int) int {
+		result := s.Fold(100, func(acc int, val int) int {
 			return acc + val
 		})
 		if result != 100 {
@@ -3427,7 +3427,7 @@ func TestSliceReduce(t *testing.T) {
 
 	t.Run("reduces to different type", func(t *testing.T) {
 		s := Slice[int]{1, 2, 3, 4}
-		result := SliceReduce(s, []int{}, func(acc []int, val int) []int {
+		result := s.Fold([]int{}, func(acc []int, val int) []int {
 			if val%2 == 0 {
 				return append(acc, val)
 			}
@@ -3446,7 +3446,7 @@ func TestSliceReduce(t *testing.T) {
 
 	t.Run("multiplies with initial value", func(t *testing.T) {
 		s := Slice[int]{2, 3, 4}
-		result := SliceReduce(s, 1, func(acc int, val int) int {
+		result := s.Fold(1, func(acc int, val int) int {
 			return acc * val
 		})
 		if result != 24 {

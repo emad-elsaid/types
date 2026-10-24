@@ -162,9 +162,9 @@ func (s *Set[T]) Each(fn func(T)) {
 	}
 }
 
-// SetMap applies a transformation function to each element and returns a new set with the results.
+// Map applies a transformation function to each element and returns a new set with the results.
 // The transformation function must return a comparable type.
-func SetMap[T, U comparable](s *Set[T], fn func(T) U) *Set[U] {
+func (s *Set[T]) Map[U comparable](fn func(T) U) *Set[U] {
 	result := NewSet[U]()
 	result.order = make([]U, 0, len(s.order))
 	result.items = make(map[U]struct{}, len(s.order))
@@ -245,9 +245,9 @@ func (s *Set[T]) Count(predicate func(T) bool) int {
 	return count
 }
 
-// SetReduce applies a reduction function to all elements in the set, starting with an initial value.
+// Reduce applies a reduction function to all elements in the set, starting with an initial value.
 // The reduction function takes the accumulated value and the current element, returning the new accumulated value.
-func SetReduce[T comparable, U any](s *Set[T], initial U, fn func(U, T) U) U {
+func (s *Set[T]) Reduce[U any](initial U, fn func(U, T) U) U {
 	result := initial
 	for _, item := range s.order {
 		result = fn(result, item)

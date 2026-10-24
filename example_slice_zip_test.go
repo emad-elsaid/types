@@ -2,14 +2,14 @@ package types
 
 import "fmt"
 
-func ExampleZip() {
+func ExampleSlice_Zip() {
 	// Zip two slices of different types
 	numbers := Slice[int]{1, 2, 3, 4}
 	letters := Slice[string]{"a", "b", "c"}
 
 	// Zip combines them element-wise
 	// Result length is determined by the shorter slice
-	pairs := Zip(numbers, letters)
+	pairs := numbers.Zip(letters)
 
 	for _, pair := range pairs {
 		fmt.Printf("(%v, %v) ", pair[0], pair[1])
@@ -18,12 +18,12 @@ func ExampleZip() {
 	// Output: (1, a) (2, b) (3, c)
 }
 
-func ExampleZip_sameTypes() {
+func ExampleSlice_Zip_sameTypes() {
 	// Zip works with slices of the same type too
 	first := Slice[int]{1, 2, 3}
 	second := Slice[int]{10, 20, 30}
 
-	pairs := Zip(first, second)
+	pairs := first.Zip(second)
 
 	for _, pair := range pairs {
 		sum := pair[0].(int) + pair[1].(int)

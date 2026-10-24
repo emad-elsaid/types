@@ -876,7 +876,7 @@ func TestSet_EachOrderPreserved(t *testing.T) {
 	}
 }
 
-func TestSetMap(t *testing.T) {
+func TestSet_Map(t *testing.T) {
 	tests := []struct {
 		name    string
 		initial []int
@@ -904,7 +904,7 @@ func TestSetMap(t *testing.T) {
 			if tt.name == "square numbers" {
 				// Special case for int to int mapping
 				mapFn := func(n int) int { return n * n }
-				result := SetMap(set, mapFn)
+				result := set.Map(mapFn)
 				got := result.ToSlice()
 				sort.Ints(got)
 				want := tt.want
@@ -915,7 +915,7 @@ func TestSetMap(t *testing.T) {
 				}
 			} else {
 				// For string mapping tests
-				result := SetMap(set, tt.mapFn)
+				result := set.Map(tt.mapFn)
 				got := result.ToSlice()
 				sort.Strings(got)
 				want := tt.want
@@ -1300,7 +1300,7 @@ func TestSet_Count(t *testing.T) {
 	}
 }
 
-func TestSetReduce(t *testing.T) {
+func TestSet_Reduce(t *testing.T) {
 	tests := []struct {
 		name        string
 		initial     []int
@@ -1353,7 +1353,7 @@ func TestSetReduce(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			set := NewSet(tt.initial...)
-			got := SetReduce(set, tt.initial_val, tt.reduceFn)
+			got := set.Reduce(tt.initial_val, tt.reduceFn)
 
 			if got != tt.want {
 				t.Errorf("Reduce() = %v, want %v", got, tt.want)
